@@ -1,16 +1,68 @@
-# React + Vite
+# STFI Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend del sistema de gestión de congresos desarrollado con **React**
+y **Vite**.
 
-Currently, two official plugins are available:
+Este proyecto forma parte del Trabajo Final Integrador (TFI) y se
+comunica con una API REST desarrollada en **Spring Boot**.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Tecnologías utilizadas
 
-## React Compiler
+-   React
+-   Vite
+-   JavaScript
+-   npm
+-   ESLint
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Requisitos
 
-## Expanding the ESLint configuration
+Antes de ejecutar el proyecto es necesario tener instalado:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+-   Node.js 24.18.0 LTS o superior
+-   npm
+
+## Instalación
+
+Clonar el repositorio:
+
+``` bash
+git clone <URL_DEL_REPOSITORIO>
+```
+
+Ingresar al directorio del proyecto:
+
+``` bash
+cd stfi-frontend
+```
+
+Instalar las dependencias:
+
+``` bash
+npm install
+```
+
+## Ejecución
+
+Para iniciar el servidor de desarrollo ejecutar:
+
+``` bash
+npm run dev
+```
+
+La aplicación estará disponible en:
+
+``` text
+http://localhost:5173
+```
+
+## Backend
+
+Este frontend consume los servicios REST del proyecto backend
+desarrollado en Spring Boot.
+
+Para un correcto funcionamiento, el backend debe estar ejecutándose
+antes de iniciar la aplicación.
+
+## Estado del proyecto
+
+Actualmente el proyecto se encuentra en etapa de desarrollo.
