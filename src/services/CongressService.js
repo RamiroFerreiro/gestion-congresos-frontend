@@ -76,6 +76,26 @@ class CongressService {
       },
     );
   }
+
+  /// Obtener usuarios de un congreso con determinado rol:
+  listParticipantsByCongressAndRole(congressId, role = null, authToken) {
+    const config = {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+      params: {},
+    };
+
+    // Si se pasó el parámetro 'role', lo agregamos:
+    if (role !== null && role !== undefined) {
+      config.params.role = role;
+    }
+
+    return axios.get(
+      `${Constants.BASE_URL}/api/congresses/${congressId}/participants`,
+      config,
+    );
+  }
 }
 
 export default new CongressService();
