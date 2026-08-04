@@ -26,6 +26,22 @@ class PaperService {
       },
     );
   }
+
+  // Obtener trabajos asignados a un evaluador
+  listPapersByReviewer(reviewerId, authToken) {
+    const config = {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    };
+
+    return axios.get(
+      `${Constants.BASE_URL}/api/papers/reviewer/${reviewerId}`,
+      config
+    );
+  }
+
 }
+
 
 export default new PaperService();
