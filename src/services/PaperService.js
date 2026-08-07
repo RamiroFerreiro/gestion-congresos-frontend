@@ -2,6 +2,7 @@ import axios from "axios";
 import { Constants } from "../constants/index";
 
 class PaperService {
+  /// Obtener trabajos de un congreso determinado:
   listPapersByCongress(congressId, authToken) {
     const config = {
       headers: {
@@ -15,6 +16,7 @@ class PaperService {
     return axios.get(`${Constants.BASE_URL}/api/papers`, config);
   }
 
+  /// Asignar un evaluador a un trabajo:
   assignReviewerToPaper(paperId, reviewerId, authToken) {
     return axios.patch(
       `${Constants.BASE_URL}/api/papers/${paperId}/reviewers/${reviewerId}`,
@@ -37,11 +39,9 @@ class PaperService {
 
     return axios.get(
       `${Constants.BASE_URL}/api/papers/reviewer/${reviewerId}`,
-      config
+      config,
     );
   }
-
 }
-
 
 export default new PaperService();

@@ -96,6 +96,19 @@ class CongressService {
       config,
     );
   }
+
+  /// Añadir un participante a un congreso:
+  addParticipantToCongress(congressId, participantId, authToken) {
+    return axios.post(
+      `${Constants.BASE_URL}/api/congresses/${congressId}/participants/${participantId}`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      },
+    );
+  }
 }
 
 export default new CongressService();
