@@ -42,6 +42,54 @@ class PaperService {
       config,
     );
   }
+
+   // Traer el detalle de un Paper puntual
+  getPaperById(paperId, authToken) {
+    return axios.get(`${Constants.BASE_URL}/api/papers/${paperId}`, {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+  }
+
+  // Crear un nuevo Paper (nace en estado NOT_SUBMITTED)
+  createPaper(payload) {
+    return axios.post(`${Constants.BASE_URL}/api/papers`, payload, {
+      //headers: {
+      //  Authorization: `Bearer ${authToken}`,
+      //},
+    });
+  }
+
+  // Enviar el Paper a revisión: NOT_SUBMITTED/NEEDS_REVISION -> UNDER_EVALUATION
+  submitPaper(paperId, authToken) {
+    return axios.patch(
+      `${Constants.BASE_URL}/api/papers/${paperId}/submit`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      },
+    );
+  }
+
+  // Agregar un autor a un Paper existente (solo si está NOT_SUBMITTED)
+  addAuthorToPaper(paperId, userId, authToken) {
+    return axios.post(
+      `${Constants.BASE_URL}/api/papers/${paperId}/authors/${userId}`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      },
+    );
+  }
+
+
+
+
 }
 
 export default new PaperService();
