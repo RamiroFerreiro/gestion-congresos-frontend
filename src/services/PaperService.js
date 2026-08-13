@@ -86,6 +86,18 @@ class PaperService {
       },
     );
   }
+  
+  // Eliminar un autor de un Paper (solo si está NOT_SUBMITTED, nunca al autor orden 1)
+  removeAuthorFromPaper(paperId, userId, authToken) {
+    return axios.delete(
+      `${Constants.BASE_URL}/api/papers/${paperId}/authors/${userId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      },
+    );
+  }
 
 
 

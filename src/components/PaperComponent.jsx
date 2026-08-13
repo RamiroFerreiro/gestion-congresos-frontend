@@ -1,5 +1,6 @@
 import { useState } from "react";
 import paperService from "../services/PaperService"; // ajustá el path real
+import { HomeButton } from './HomeButton'; // Ajusta la ruta según tu carpeta
 
 const FAKE_TOKEN = "fake-token"; // TODO: reemplazar cuando haya login real
 
@@ -99,8 +100,20 @@ function CreatePaper() {
     }
   };
 
+  const handleRemoveAuthor = async (userId) => {
+    try {
+      const response = await paperService.removeAuthorFromPaper(paperId, userId, FAKE_TOKEN);
+      setAuthors(response.data);
+      alert(`Autor ${userId} eliminado. Total de autores: ${response.data.length}`);
+    } catch (error) {
+      const backendMessage = error.response?.data?.message || "Error desconocido";
+      alert(`Error al eliminar autor: ${backendMessage}`);
+    }
+  };
+
   return (
     <div>
+      <HomeButton />
       <h3>Crear Paper</h3>
 
       <input name="title" placeholder="Título" value={form.title} onChange={handleChange} />
@@ -155,6 +168,21 @@ function CreatePaper() {
             {authors.map((a) => (
               <li key={a.authorId}>
                 {a.authorOrder}. {a.fullName} (ID {a.authorId}) - {a.email}
+              </li>
+            ))}
+          </ul>
+
+          <ul>
+            {authors.map((a) => (
+              <li key={a.authorId}>
+                {a.authorOrder}. {a.fullName} (ID {a.authorId}) - {a.email}
+                {" "}
+                <button
+                  onClick={() => handleRemoveAuthor(a.authorId)}
+                  disabled={isSubmitted || a.authorOrder === 1}
+                >
+                  Quitar
+                </button>
               </li>
             ))}
           </ul>

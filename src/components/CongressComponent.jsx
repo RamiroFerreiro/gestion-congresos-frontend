@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import congressService from "../services/CongressService"; // ajustá el path real
+import { HomeButton } from './HomeButton'; // Ajusta la ruta según tu carpeta
+
 
 const FAKE_TOKEN = "fake-token"; // TODO: reemplazar cuando haya login real
 
@@ -27,12 +29,17 @@ function CongressComponent() {
   const [newParticipantId, setNewParticipantId] = useState("");
   const [addError, setAddError] = useState(null);
 
+  const hasRunRef = useRef(false); // 👈 nuevo: bandera anti-doble-ejecución
+
   const refreshCongress = async (congressId) => {
     const response = await congressService.getCongressById(congressId, FAKE_TOKEN);
     setCongressData(response.data);
   };
 
   useEffect(() => {
+    if (hasRunRef.current) return; // 👈 si ya corrió una vez, no lo repite
+    hasRunRef.current = true;
+
     const createCongressFlow = async () => {
       const userId = localStorage.getItem("testUserId");
       if (!userId) {
@@ -52,7 +59,7 @@ function CongressComponent() {
 
         await congressService.addParticipantToCongress(congress.congressId, userId, FAKE_TOKEN);
 
-        await refreshCongress(congress.congressId); // trae el congreso YA con el participante embebido
+        await refreshCongress(congress.congressId);
       } catch (err) {
         const backendMessage = err.response?.data?.message || "Error desconocido";
         setError(backendMessage);
@@ -75,7 +82,7 @@ function CongressComponent() {
       await congressService.addParticipantToCongress(congressData.congressId, userId, FAKE_TOKEN);
       setNewParticipantId("");
       setAddError(null);
-      await refreshCongress(congressData.congressId); // refresca con el participants[] actualizado
+      await refreshCongress(congressData.congressId);
       alert(`Usuario ${userId} agregado como participante`);
     } catch (err) {
       const backendMessage = err.response?.data?.message || "Error desconocido";
@@ -85,6 +92,7 @@ function CongressComponent() {
 
   return (
     <div>
+      <HomeButton />
       <h1>Agregando congreso...</h1>
 
       {loading && <p>Cargando...</p>}
