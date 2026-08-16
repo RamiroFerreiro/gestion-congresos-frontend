@@ -1,26 +1,17 @@
-import { useState, useEffect } from 'react';
-import './App.css';
+import { Routes, Route } from "react-router-dom";
+import UserSelector from "./components/UserSelector";
+import PaperComponent from "./components/PaperComponent";
+import CongressComponent from "./components/CongressComponent";
+
 
 function App() {
-
-  const [mensaje, setMensaje] = useState("");
-
-  useEffect(() => {
-
-    fetch("http://localhost:8080/api/users/test")
-      .then(response => response.json())
-      .then(data => setMensaje(data.mensaje))
-      .catch(error => console.error(error));
-
-  }, []);
-
   return (
-    <>
-      <h1>Frontend React</h1>
-      <h2>{mensaje}</h2>
-    </>
+    <Routes>
+      <Route path="/" element={<UserSelector />} />
+      <Route path="/crear-paper" element={<PaperComponent />} />
+      <Route path="/crear-congreso" element={<CongressComponent />} /> 
+    </Routes>
   );
-
 }
 
 export default App;
