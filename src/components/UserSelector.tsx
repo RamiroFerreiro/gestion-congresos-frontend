@@ -13,7 +13,7 @@ function UserSelector() {
     const navigate = useNavigate();
 
     const handleSave = () => {
-        localStorage.setItem("testUserId", selectedUserId);
+        localStorage.setItem("testUserId", String(selectedUserId));
         alert(`Usuario guardado: ID ${selectedUserId}`);
         };
 
