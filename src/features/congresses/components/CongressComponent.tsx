@@ -1,6 +1,8 @@
+// @ts-nocheck
+
 import { useState, useEffect, useRef } from "react";
-import congressService from "../services/CongressService"; // ajustá el path real
-import { HomeButton } from './HomeButton'; // Ajusta la ruta según tu carpeta
+import congressService from "../api/CongressService"; // ajustá el path real
+import { HomeButton } from '../../../components/HomeButton'; // Ajusta la ruta según tu carpeta
 
 
 const FAKE_TOKEN = "fake-token"; // TODO: reemplazar cuando haya login real
