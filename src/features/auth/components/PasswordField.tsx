@@ -1,17 +1,16 @@
-import { useState } from "react";
 import {
   Box,
   Button,
   InputAdornment,
   TextField,
   Typography,
+  type TextFieldProps,
 } from "@mui/material";
+import { useState } from "react";
 
-interface PasswordFieldProps {
-  id: string;
+interface PasswordFieldProps
+  extends Omit<TextFieldProps, "type" | "label"> {
   label: string;
-  placeholder?: string;
-  helperText?: string;
 }
 
 /**
@@ -30,8 +29,7 @@ interface PasswordFieldProps {
 function PasswordField({
   id,
   label,
-  placeholder,
-  helperText,
+  ...textFieldProps
 }: PasswordFieldProps) {
   const [showPassword, setShowPassword] = useState(false);
 
@@ -55,18 +53,13 @@ function PasswordField({
       <TextField
         id={id}
         type={showPassword ? "text" : "password"}
-        placeholder={placeholder}
         size="small"
         fullWidth
+        {...textFieldProps}
         slotProps={{
           input: {
             endAdornment: (
               <InputAdornment position="end">
-                {/*
-                  La visibilidad se controla dentro del componente
-                  para evitar repetir esta lógica en cada formulario
-                  que solicite una contraseña.
-                */}
                 <Button
                   type="button"
                   onClick={() =>
@@ -80,14 +73,21 @@ function PasswordField({
                   sx={{
                     minWidth: "auto",
                     p: 0,
-                    color: "text.secondary",
+                    color: showPassword
+                      ? "primary.main"
+                      : "text.secondary",
                     fontSize: "0.6875rem",
                     fontWeight: 500,
                     letterSpacing: "0.05em",
-                    cursor: "pointer",
 
                     "&:hover": {
                       bgcolor: "transparent",
+                      color: "primary.main",
+                    },
+
+                    "&:active": {
+                      bgcolor: "transparent",
+                      color: "primary.dark",
                     },
                   }}
                 >
@@ -98,20 +98,6 @@ function PasswordField({
           },
         }}
       />
-
-      {helperText && (
-        <Typography
-          variant="body2"
-          sx={{
-            color: "text.secondary",
-            mt: 0.75,
-            textAlign: "left",
-            fontSize: "0.75rem",
-          }}
-        >
-          {helperText}
-        </Typography>
-      )}
     </Box>
   );
 }

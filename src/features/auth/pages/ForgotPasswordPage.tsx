@@ -1,12 +1,12 @@
-import {
-  Box,
-  Button,
-  Link,
-  Paper,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Box, Button, Link, Paper, TextField, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+import {
+  forgotPasswordSchema,
+  type ForgotPasswordFormData,
+} from "../schemas/forgotPasswordSchema";
 
 /**
  * Vista de recuperación de contraseña de C4T.
@@ -25,6 +25,16 @@ import { Link as RouterLink } from "react-router-dom";
  * con el backend se incorporarán posteriormente.
  */
 function ForgotPasswordPage() {
+  const { control, handleSubmit } = useForm<ForgotPasswordFormData>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: "",
+    },
+  });
+
+  const onSubmit = (data: ForgotPasswordFormData) => {
+    console.log(data);
+  };
   return (
     <Box
       sx={{
@@ -33,7 +43,9 @@ function ForgotPasswordPage() {
       }}
     >
       <Paper
-        elevation={0}
+        component="form"
+        onSubmit={handleSubmit(onSubmit)}
+        elevation={1}
         sx={{
           p: 3,
           borderRadius: 2,
@@ -65,33 +77,24 @@ function ForgotPasswordPage() {
           una nueva contraseña.
         </Typography>
 
-        <Box>
-          <Typography
-            component="label"
-            htmlFor="email"
-            variant="body2"
-            sx={{
-              display: "block",
-              color: "text.secondary",
-              fontWeight: 600,
-              mb: 0.75,
-              textAlign: "left",
-            }}
-          >
-            Correo electrónico
-          </Typography>
-
-          <TextField
-            id="email"
-            type="email"
-            placeholder="nombre@institucion.edu.ar"
-            size="small"
-            fullWidth
-          />
-        </Box>
-
+        <Controller
+          name="email"
+          control={control}
+          render={({ field, fieldState }) => (
+            <TextField
+              {...field}
+              id="email"
+              type="email"
+              placeholder="usuario@ejemplo.com"
+              size="small"
+              fullWidth
+              error={!!fieldState.error}
+              helperText={fieldState.error?.message}
+            />
+          )}
+        />
         <Button
-          type="button"
+          type="submit"
           variant="contained"
           fullWidth
           sx={{

@@ -1,13 +1,11 @@
-import {
-  Box,
-  Button,
-  Link,
-  Paper,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Box, Button, Link, Paper, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
 import PasswordField from "../components/PasswordField";
+import { loginSchema, type LoginFormData } from "../schemas/loginSchema";
+import RegisterField from "../components/RegisterField";
 
 /**
  * Vista de inicio de sesión de C4T.
@@ -25,6 +23,18 @@ import PasswordField from "../components/PasswordField";
  * posteriormente con React Hook Form y Zod.
  */
 function LoginPage() {
+  const { control, handleSubmit } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const onSubmit = (data: LoginFormData) => {
+    console.log(data);
+  };
+
   return (
     <Box
       sx={{
@@ -35,6 +45,8 @@ function LoginPage() {
       }}
     >
       <Paper
+        component="form"
+        onSubmit={handleSubmit(onSubmit)}
         elevation={1}
         sx={{
           p: 3.5,
@@ -69,35 +81,34 @@ function LoginPage() {
             gap: 2.25,
           }}
         >
-          <Box>
-            <Typography
-              component="label"
-              htmlFor="email"
-              variant="body2"
-              sx={{
-                display: "block",
-                color: "text.secondary",
-                fontWeight: 600,
-                mb: 0.75,
-                textAlign: "left",
-              }}
-            >
-              Correo electrónico
-            </Typography>
+          <Controller
+            name="email"
+            control={control}
+            render={({ field, fieldState }) => (
+              <RegisterField
+                id="email"
+                label="Correo electrónico"
+                placeholder="nombre@institucion.edu.ar"
+                {...field}
+                error={!!fieldState.error}
+                helperText={fieldState.error?.message}
+              />
+            )}
+          />
 
-            <TextField
-              id="email"
-              type="email"
-              placeholder="nombre@institucion.edu.ar"
-              size="small"
-              fullWidth
-            />
-          </Box>
-
-          <PasswordField
-            id="password"
-            label="Contraseña"
-            placeholder="••••••••"
+          <Controller
+            name="password"
+            control={control}
+            render={({ field, fieldState }) => (
+              <PasswordField
+                id="password"
+                label="Contraseña"
+                placeholder="••••••••"
+                {...field}
+                error={!!fieldState.error}
+                helperText={fieldState.error?.message}
+              />
+            )}
           />
 
           {/*
@@ -126,6 +137,7 @@ function LoginPage() {
           </Box>
 
           <Button
+            type="submit"
             variant="contained"
             fullWidth
             sx={{

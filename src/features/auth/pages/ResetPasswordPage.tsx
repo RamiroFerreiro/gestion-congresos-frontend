@@ -1,6 +1,13 @@
 import { Box, Button, Link, Paper, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
 import PasswordField from "../components/PasswordField";
+import {
+  resetPasswordSchema,
+  type ResetPasswordFormData,
+} from "../schemas/resetPasswordSchema";
 
 /**
  * Vista para establecer una nueva contraseña de C4T.
@@ -22,6 +29,17 @@ import PasswordField from "../components/PasswordField";
  * se incorporarán posteriormente mediante React Hook Form y Zod.
  */
 function ResetPasswordPage() {
+  const { control, handleSubmit } = useForm<ResetPasswordFormData>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
+    },
+  });
+
+  const onSubmit = (data: ResetPasswordFormData) => {
+    console.log(data);
+  };
   return (
     <Box
       sx={{
@@ -30,7 +48,9 @@ function ResetPasswordPage() {
       }}
     >
       <Paper
-        elevation={0}
+        component="form"
+        onSubmit={handleSubmit(onSubmit)}
+        elevation={1}
         sx={{
           p: 3,
           borderRadius: 2,
@@ -75,21 +95,39 @@ function ResetPasswordPage() {
             gap: 2,
           }}
         >
-          <PasswordField
-            id="newPassword"
-            label="Nueva contraseña"
-            placeholder="••••••••"
+          <Controller
+            name="password"
+            control={control}
+            render={({ field, fieldState }) => (
+              <PasswordField
+                id="password"
+                label="Nueva contraseña"
+                placeholder="••••••••"
+                {...field}
+                error={!!fieldState.error}
+                helperText={fieldState.error?.message}
+              />
+            )}
           />
 
-          <PasswordField
-            id="confirmNewPassword"
-            label="Confirmar nueva contraseña"
-            placeholder="••••••••"
+          <Controller
+            name="confirmPassword"
+            control={control}
+            render={({ field, fieldState }) => (
+              <PasswordField
+                id="confirmPassword"
+                label="Confirmar nueva contraseña"
+                placeholder="••••••••"
+                {...field}
+                error={!!fieldState.error}
+                helperText={fieldState.error?.message}
+              />
+            )}
           />
         </Box>
 
         <Button
-          type="button"
+          type="submit"
           variant="contained"
           fullWidth
           sx={{

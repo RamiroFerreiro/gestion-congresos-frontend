@@ -3,14 +3,21 @@ import {
   Button,
   Link,
   Paper,
-  TextField,
   Typography,
   FormControl,
+  FormHelperText,
   MenuItem,
   Select,
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  registerSchema,
+  type RegisterFormData,
+} from "../schemas/registerSchema";
 import PasswordField from "../components/PasswordField";
+import RegisterField from "../components/RegisterField";
 
 /**
  * Vista de registro de usuarios de C4T.
@@ -29,6 +36,24 @@ import PasswordField from "../components/PasswordField";
  * posteriormente mediante React Hook Form y Zod.
  */
 function RegisterPage() {
+  const { control, handleSubmit } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      dni: "",
+      institution: "",
+      country: "",
+      password: "",
+      confirmPassword: "",
+    },
+  });
+
+  const onSubmit = (data: RegisterFormData) => {
+    console.log(data);
+  };
+
   return (
     <Box
       sx={{
@@ -40,6 +65,8 @@ function RegisterPage() {
       }}
     >
       <Paper
+        component="form"
+        onSubmit={handleSubmit(onSubmit)}
         elevation={1}
         sx={{
           p: 3,
@@ -97,82 +124,152 @@ function RegisterPage() {
             },
           }}
         >
-          <RegisterField id="firstName" label="Nombre" placeholder="Juan" />
-
-          <RegisterField id="lastName" label="Apellido" placeholder="Pérez" />
-
-          <RegisterField
-            id="email"
-            label="Correo electrónico"
-            type="email"
-            placeholder="nombre@institucion.edu.ar"
+          <Controller
+            name="firstName"
+            control={control}
+            render={({ field, fieldState }) => (
+              <RegisterField
+                id="firstName"
+                label="Nombre"
+                placeholder="Juan"
+                {...field}
+                error={!!fieldState.error}
+                helperText={fieldState.error?.message}
+              />
+            )}
           />
 
-          <RegisterField
-            id="dni"
-            label="DNI"
-            placeholder="12345678"
-            numericOnly={true}
+          <Controller
+            name="lastName"
+            control={control}
+            render={({ field, fieldState }) => (
+              <RegisterField
+                id="lastName"
+                label="Apellido"
+                placeholder="Noli"
+                {...field}
+                error={!!fieldState.error}
+                helperText={fieldState.error?.message}
+              />
+            )}
           />
 
-          <RegisterField
-            id="institution"
-            label="Institución"
-            placeholder="Universidad Nacional de Lanús"
+          <Controller
+            name="email"
+            control={control}
+            render={({ field, fieldState }) => (
+              <RegisterField
+                id="email"
+                label="Correo electrónico"
+                type="email"
+                placeholder="nombre@institucion.edu.ar"
+                {...field}
+                error={!!fieldState.error}
+                helperText={fieldState.error?.message}
+              />
+            )}
+          />
+
+          <Controller
+            name="dni"
+            control={control}
+            render={({ field, fieldState }) => (
+              <RegisterField
+                id="dni"
+                label="DNI"
+                placeholder="12345678"
+                {...field}
+                error={!!fieldState.error}
+                helperText={fieldState.error?.message}
+                numericOnly={true}
+              />
+            )}
+          />
+
+          <Controller
+            name="institution"
+            control={control}
+            render={({ field, fieldState }) => (
+              <RegisterField
+                id="institution"
+                label="Institución"
+                placeholder="Universidad Nacional de Lanús"
+                {...field}
+                error={!!fieldState.error}
+                helperText={fieldState.error?.message}
+              />
+            )}
           />
 
           <Box>
-            <Typography
-              component="label"
-              htmlFor="country"
-              variant="body2"
-              sx={{
-                display: "block",
-                color: "text.secondary",
-                fontWeight: 600,
-                mb: 0.75,
-                textAlign: "left",
-              }}
-            >
-              País
-            </Typography>
+            <Controller
+              name="country"
+              control={control}
+              render={({ field, fieldState }) => (
+                <FormControl fullWidth size="small" error={!!fieldState.error}>
+                  <Typography
+                    component="label"
+                    htmlFor="country"
+                    variant="body2"
+                    sx={{
+                      display: "block",
+                      color: "text.secondary",
+                      fontWeight: 600,
+                      mb: 0.75,
+                      textAlign: "left",
+                    }}
+                  >
+                    País
+                  </Typography>
 
-            <FormControl fullWidth size="small">
-              {/*
-                País se modela como una selección cerrada para evitar
-                variaciones de escritura y mantener valores consistentes
-                al momento de enviarlos al backend.
-              */}
-              <Select
-                id="country"
-                defaultValue="Argentina"
-                inputProps={{
-                  "aria-label": "País",
-                }}
-              >
-                <MenuItem value="Argentina">Argentina</MenuItem>
-                <MenuItem value="Uruguay">Uruguay</MenuItem>
-                <MenuItem value="Chile">Chile</MenuItem>
-                <MenuItem value="Paraguay">Paraguay</MenuItem>
-                <MenuItem value="Brasil">Brasil</MenuItem>
-              </Select>
-            </FormControl>
+                  <Select {...field} id="country" displayEmpty>
+                    <MenuItem value="">
+                      <em>Seleccioná un país</em>
+                    </MenuItem>
+                    <MenuItem value="Argentina">Argentina</MenuItem>
+                  </Select>
+
+                  {fieldState.error && (
+                    <FormHelperText>{fieldState.error.message}</FormHelperText>
+                  )}
+                </FormControl>
+              )}
+            />
           </Box>
 
-          <PasswordField
-            id="password"
-            label="Contraseña"
-            placeholder="••••••••"
+          <Controller
+            name="password"
+            control={control}
+            render={({ field, fieldState }) => (
+              <PasswordField
+                id="password"
+                label="Contraseña"
+                placeholder="••••••••"
+                {...field}
+                error={!!fieldState.error}
+                helperText={fieldState.error?.message}
+              />
+            )}
           />
-          
-          <PasswordField
-            id="confirmPassword"
-            label="Confirmar contraseña"
-            placeholder="••••••••"
+
+          <Controller
+            name="confirmPassword"
+            control={control}
+            render={({ field, fieldState }) => (
+              <PasswordField
+                id="confirmPassword"
+                label="Confirmar contraseña"
+                placeholder="••••••••"
+                {...field}
+                error={!!fieldState.error}
+                helperText={fieldState.error?.message}
+              />
+            )}
           />
         </Box>
 
         <Button
+          type="submit"
           variant="contained"
           fullWidth
           sx={{
@@ -205,84 +302,6 @@ function RegisterPage() {
           Iniciá sesión
         </Link>
       </Typography>
-    </Box>
-  );
-}
-
-/**
- * Campo visual reutilizable exclusivamente para el formulario de registro.
- *
- * Centraliza la estructura label + TextField para evitar repetir
- * el mismo bloque de maquetado en cada dato solicitado al usuario.
- *
- * Si este patrón comienza a utilizarse en otros formularios de C4T,
- * podrá extraerse posteriormente a un componente compartido.
- */
-interface RegisterFieldProps {
-  id: string;
-  label: string;
-  type?: string;
-  placeholder?: string;
-  numericOnly?: boolean;
-  showPassword?: boolean;
-  onTogglePassword?: () => void;
-}
-
-function RegisterField({
-  id,
-  label,
-  type = "text",
-  placeholder,
-  numericOnly,
-  showPassword,
-  onTogglePassword,
-}: RegisterFieldProps) {
-  return (
-    <Box>
-      <Typography
-        component="label"
-        htmlFor={id}
-        variant="body2"
-        sx={{
-          display: "block",
-          color: "text.secondary",
-          fontWeight: 600,
-          mb: 0.75,
-          textAlign: "left",
-        }}
-      >
-        {label}
-      </Typography>
-
-      <TextField
-        id={id}
-        type={onTogglePassword ? (showPassword ? "text" : "password") : type}
-        placeholder={placeholder}
-        size="small"
-        fullWidth
-        onChange={
-          numericOnly
-            ? (event) => {
-                // Elimina cualquier carácter que no sea un dígito.
-                event.target.value = event.target.value.replace(/\D/g, "");
-              }
-            : undefined
-        }
-        slotProps={{
-          htmlInput: numericOnly
-            ? {
-                // DNI se mantiene como texto porque representa un
-                // identificador y no un valor destinado a cálculos.
-                //
-                // inputMode muestra teclado numérico en dispositivos
-                // móviles y pattern restringe semánticamente el campo
-                // a caracteres numéricos.
-                inputMode: "numeric",
-                pattern: "[0-9]*",
-              }
-            : undefined,
-        }}
-      />
     </Box>
   );
 }
