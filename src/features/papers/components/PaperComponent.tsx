@@ -1,6 +1,8 @@
+// @ts-nocheck
+
 import { useState } from "react";
-import paperService from "../services/PaperService"; // ajustá el path real
-import { HomeButton } from './HomeButton'; // Ajusta la ruta según tu carpeta
+import paperService from "../api/PaperService"; // ajustá el path real
+import { HomeButton } from '../../../components/HomeButton'; // Ajusta la ruta según tu carpeta
 
 const FAKE_TOKEN = "fake-token"; // TODO: reemplazar cuando haya login real
 

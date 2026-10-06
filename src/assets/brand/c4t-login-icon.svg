@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 140" role="img" aria-labelledby="title description">
+  <title id="title">Ícono de C4T</title>
+  <desc id="description">Documento científico con un gráfico de resultados.</desc>
+
+  <!-- Documento principal: representa el trabajo científico presentado al congreso. -->
+  <path
+    d="M12 6h67l29 29v99H12z"
+    fill="#FFFDFC"
+    stroke="#4C1224"
+    stroke-width="4"
+    stroke-linejoin="round"
+  />
+
+  <!-- Pliegue superior del documento. -->
+  <path
+    d="M79 6v29h29"
+    fill="#F3E1E6"
+    stroke="#7A1F3A"
+    stroke-width="4"
+    stroke-linejoin="round"
+  />
+
+  <!-- Contenido textual del trabajo. -->
+  <path
+    d="M31 38h31M31 51h52"
+    fill="none"
+    stroke="#E1D6D9"
+    stroke-width="3"
+    stroke-linecap="round"
+  />
+
+  <!-- Ejes y serie de resultados científicos. -->
+  <path
+    d="M31 112V70m0 42h54"
+    fill="none"
+    stroke="#9C8B90"
+    stroke-width="1.6"
+  />
+  <path
+    d="M36 103l13-10 13 5 19-21"
+    fill="none"
+    stroke="#7A1F3A"
+    stroke-width="3"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <g fill="#4C1224">
+    <circle cx="36" cy="103" r="3.5" />
+    <circle cx="49" cy="93" r="3.5" />
+    <circle cx="62" cy="98" r="3.5" />
+    <circle cx="81" cy="77" r="3.5" />
+  </g>
+</svg>
