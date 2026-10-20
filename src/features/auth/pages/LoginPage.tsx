@@ -1,11 +1,13 @@
-import { Box, Button, Link, Paper, Typography } from "@mui/material";
-import { Link as RouterLink } from "react-router-dom";
+import { useState } from "react";
+import { Box, Button, Link, Paper, Typography, Alert } from "@mui/material";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import PasswordField from "../components/PasswordField";
-import { loginSchema, type LoginFormData } from "../schemas/loginSchema";
 import RegisterField from "../components/RegisterField";
+import { loginSchema, type LoginFormData } from "../schemas/loginSchema";
+import { useAuth } from "../context/AuthContext";
 
 /**
  * Vista de inicio de sesión de C4T.
@@ -13,17 +15,21 @@ import RegisterField from "../components/RegisterField";
  * Responsabilidades:
  * - Renderizar el formulario visual de inicio de sesión.
  * - Permitir navegar hacia recuperación de contraseña y registro.
- * - Mantener la composición definida en el prototipo de C4T.
- *
- * AuthLayout se encarga de los elementos compartidos del flujo
- * de autenticación, como la identidad visual y el fondo.
- *
- * En esta etapa se implementa únicamente el maquetado.
- * La lógica del formulario y las validaciones se incorporarán
- * posteriormente con React Hook Form y Zod.
+ * - Conectarse con el AuthContext para enviar credenciales al backend.
  */
 function LoginPage() {
-  const { control, handleSubmit } = useForm<LoginFormData>({
+  // Extraemos la función login de nuestro contexto
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  
+  // Estado local para manejar si mostramos un error de credenciales
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  const {
+    control,
+    handleSubmit,
+    formState: { isSubmitting }, // Nos sirve para deshabilitar el botón mientras carga
+  } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
@@ -31,15 +37,24 @@ function LoginPage() {
     },
   });
 
-  const onSubmit = (data: LoginFormData) => {
-    console.log(data);
+  const onSubmit = async (data: LoginFormData) => {
+    setAuthError(null); // Limpiamos errores previos al reintentar
+    try {
+      await login(data);
+      
+      // Si el backend responde OK y el Contexto guardó todo, redirigimos.
+      // Modificá "/dashboard" por la ruta principal de tu app.
+      navigate("/dashboard"); 
+    } catch (error) {
+      // Atrapamos el error y mostramos el mensaje al usuario
+      setAuthError("Las credenciales ingresadas no son correctas. Por favor, intentá nuevamente.");
+      console.error("Fallo al iniciar sesión:", error);
+    }
   };
 
   return (
     <Box
       sx={{
-        // La página puede reducirse en pantallas pequeñas,
-        // pero conserva las proporciones del formulario del prototipo.
         width: "100%",
         maxWidth: 450,
       }}
@@ -51,9 +66,6 @@ function LoginPage() {
         sx={{
           p: 3.5,
           borderRadius: 2,
-
-          // El prototipo utiliza una card limpia con borde sutil,
-          // por eso evitamos la sombra predeterminada de MUI.
           border: 1,
           borderColor: "divider",
           bgcolor: "background.paper",
@@ -70,10 +82,13 @@ function LoginPage() {
           Iniciar sesión
         </Typography>
 
-        {/*
-          Los labels se ubican fuera de los TextField para evitar
-          el floating label de Material UI y respetar el prototipo.
-        */}
+        {/* ALERTA DE ERROR: Solo se muestra si authError tiene texto */}
+        {authError && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {authError}
+          </Alert>
+        )}
+
         <Box
           sx={{
             display: "flex",
@@ -111,10 +126,6 @@ function LoginPage() {
             )}
           />
 
-          {/*
-            Al no incluir "Recordarme", el enlace de recuperación
-            permanece alineado al extremo derecho de la card.
-          */}
           <Box
             sx={{
               display: "flex",
@@ -140,6 +151,7 @@ function LoginPage() {
             type="submit"
             variant="contained"
             fullWidth
+            disabled={isSubmitting} // Se deshabilita para evitar doble click
             sx={{
               py: 1.25,
               mt: 0.25,
@@ -147,15 +159,11 @@ function LoginPage() {
               fontWeight: 700,
             }}
           >
-            Ingresar
+            {isSubmitting ? "Ingresando..." : "Ingresar"}
           </Button>
         </Box>
       </Paper>
 
-      {/*
-        Estas acciones quedan fuera de la card porque forman parte
-        del cierre visual de la pantalla definido en el prototipo.
-      */}
       <Typography
         variant="body2"
         sx={{

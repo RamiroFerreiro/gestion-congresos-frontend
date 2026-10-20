@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, Navigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import LoginPage from "../features/auth/pages/LoginPage";
 import AuthLayout from "../layouts/AuthLayout";
@@ -9,6 +9,9 @@ import ResetPasswordPage from "../features/auth/pages/ResetPasswordPage";
 function AppRouter() {
   return (
     <Routes>
+      {/* Redirección automática de la raíz (/) hacia el login */}
+      <Route path="/" element={<Navigate to="/auth/login" replace />} />
+
       <Route path="/auth" element={<AuthLayout />}>
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
@@ -17,7 +20,7 @@ function AppRouter() {
       </Route>
 
       <Route element={<MainLayout />} >
-        <Route path="/" element={<div>Home</div>} />
+        <Route path="/dashboard" element={<div>Panel Principal (Próximamente)</div>} />
       </Route>
     </Routes>
   );
