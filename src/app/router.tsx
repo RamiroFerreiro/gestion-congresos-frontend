@@ -5,6 +5,7 @@ import AuthLayout from "../layouts/AuthLayout";
 import RegisterPage from "../features/auth/pages/RegisterPage";
 import ForgotPasswordPage from "../features/auth/pages/ForgotPasswordPage";
 import ResetPasswordPage from "../features/auth/pages/ResetPasswordPage";
+import CongressesPage from "../features/congresses/pages/CongressesPage";
 
 function AppRouter() {
   return (
@@ -19,8 +20,15 @@ function AppRouter() {
         <Route path="reset-password" element={<ResetPasswordPage />} />
       </Route>
 
-      <Route element={<MainLayout />} >
-        <Route path="/dashboard" element={<div>Panel Principal (Próximamente)</div>} />
+      <Route element={<MainLayout />}>
+        <Route 
+            path="/congresses" 
+            element={<CongressesPage />} 
+        />
+        <Route
+          path="/dashboard"
+          element={<div>Panel Principal (Próximamente)</div>}
+        />
       </Route>
     </Routes>
   );

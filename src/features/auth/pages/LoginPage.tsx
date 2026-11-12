@@ -44,7 +44,7 @@ function LoginPage() {
       
       // Si el backend responde OK y el Contexto guardó todo, redirigimos.
       // Modificá "/dashboard" por la ruta principal de tu app.
-      navigate("/dashboard"); 
+      navigate("/congresses"); 
     } catch (error) {
       // Atrapamos el error y mostramos el mensaje al usuario
       setAuthError("Las credenciales ingresadas no son correctas. Por favor, intentá nuevamente.");

@@ -1,16 +1,102 @@
-import { Outlet } from "react-router-dom";
+import { Box, Button, Typography } from "@mui/material";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "../features/auth/context/AuthContext";
+import c4tIcon from "../assets/brand/c4t-login-icon.svg";
 
-function MainLayout() {
+export default function MainLayout() {
+  const { user, logout } = useAuth();
+  const location = useLocation();
+  const queryClient = useQueryClient();
+  if (!user || !localStorage.getItem("token"))
+    return (
+      <Navigate to="/auth/login" replace state={{ from: location.pathname }} />
+    );
   return (
-    <div>
-      <header>
-        <h1>Gestión de Congresos</h1>
-      </header>
-      <main>
-        <Outlet />
-      </main>
-    </div>
+    <Box sx={{ minHeight: "100vh", bgcolor: "background.default", p: 4 }}>
+      <Box
+        sx={{
+          maxWidth: 1200,
+          mx: "auto",
+          border: 1,
+          borderColor: "divider",
+          borderRadius: 2,
+          overflow: "hidden",
+        }}
+      >
+        <Box
+          component="header"
+          sx={{
+            bgcolor: "primary.dark",
+            color: "common.white",
+            px: 3,
+            py: 2,
+            display: "flex",
+            alignItems: "center",
+            gap: 2,
+          }}
+        >
+          <Box component="img" src={c4tIcon} alt="" sx={{ width: 40 }} />
+          <Box sx={{ flex: 1 }}>
+            <Box sx={{ display: "flex", alignItems: "baseline", gap: 1 }}>
+              <Typography
+                sx={{
+                  fontFamily: "var(--font-serif)",
+                  fontSize: "1.8rem",
+                  fontWeight: 700,
+                }}
+              >
+                C4T
+              </Typography>
+              <Typography
+                sx={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.65rem",
+                  letterSpacing: "0.12em",
+                }}
+              >
+                CALL FOR TALKS
+              </Typography>
+            </Box>
+            <Typography
+              sx={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.6rem",
+                letterSpacing: "0.08em",
+              }}
+            >
+              PLATAFORMA PARA CONGRESOS CIENTÍFICOS
+            </Typography>
+          </Box>
+          <Button
+            color="inherit"
+            variant="outlined"
+            onClick={() => {
+              // Otra cuenta no debe recibir datos de la sesión anterior desde la caché.
+              queryClient.clear();
+              logout();
+            }}
+          >
+            Cerrar sesión
+          </Button>
+        </Box>
+        <Box
+          sx={{
+            bgcolor: "action.hover",
+            px: 3,
+            py: 1.5,
+            borderBottom: 1,
+            borderColor: "divider",
+          }}
+        >
+          <Typography variant="body2" sx={{ fontFamily: "var(--font-mono)" }}>
+            Mis congresos
+          </Typography>
+        </Box>
+        <Box component="main" sx={{ p: 4, minHeight: 420 }}>
+          <Outlet />
+        </Box>
+      </Box>
+    </Box>
   );
 }
-
-export default MainLayout;
