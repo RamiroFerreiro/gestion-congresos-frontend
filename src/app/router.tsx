@@ -6,6 +6,7 @@ import RegisterPage from "../features/auth/pages/RegisterPage";
 import ForgotPasswordPage from "../features/auth/pages/ForgotPasswordPage";
 import ResetPasswordPage from "../features/auth/pages/ResetPasswordPage";
 import CongressesPage from "../features/congresses/pages/CongressesPage";
+import PaymentsPage from "../features/payments/pages/PaymentsPage";
 
 function AppRouter() {
   return (
@@ -21,10 +22,15 @@ function AppRouter() {
       </Route>
 
       <Route element={<MainLayout />}>
-        <Route 
-            path="/congresses" 
-            element={<CongressesPage />} 
+        <Route
+          path="/congresses/:congressCode/payments"
+          element={<PaymentsPage />}
         />
+        <Route
+          path="/congresses/:congressCode/payments/:paperCode"
+          element={<PaymentsPage />}
+        />
+        <Route path="/congresses" element={<CongressesPage />} />
         <Route
           path="/dashboard"
           element={<div>Panel Principal (Próximamente)</div>}
