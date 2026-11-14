@@ -9,6 +9,8 @@ import {
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
+import { Link as RouterLink } from "react-router-dom";
+import { useAuth } from "../../auth/context/AuthContext";
 import CongressService from "../api/CongressService";
 import { getCongressAvailability } from "../lib/congressAvailability";
 import { getCongressError } from "../lib/congressErrors";
@@ -41,6 +43,7 @@ export default function AvailableCongressCard({
   now,
   onInstitution,
 }: Props) {
+  const { user } = useAuth();
   const participation = useQuery({
     queryKey: ["congress-participation", userId, congress.code],
     queryFn: async ({ signal }) => {
@@ -161,6 +164,18 @@ export default function AvailableCongressCard({
               >
                 Completar institución
               </Button>
+            ) : participant.role === "ADMINISTRATOR" ||
+              participant.role === "EXPOSITOR" ? (
+              <Button
+                component={RouterLink}
+                to={`/congresses/${encodeURIComponent(congress.code)}/payments`}
+                fullWidth
+                variant="outlined"
+              >
+                {participant.role === "ADMINISTRATOR"
+                  ? "Control de pagos"
+                  : "Consultar estado de pago"}
+              </Button>
             ) : (
               <>
                 <Button fullWidth variant="outlined" disabled>
@@ -191,6 +206,16 @@ export default function AvailableCongressCard({
           </Typography>
         )}
       </Box>
+      {user?.superAdmin && participant?.role !== "ADMINISTRATOR" && (
+        <Button
+          component={RouterLink}
+          to={`/congresses/${encodeURIComponent(congress.code)}/payments`}
+          fullWidth
+          variant="outlined"
+        >
+          Control de pagos
+        </Button>
+      )}
     </Paper>
   );
 }
