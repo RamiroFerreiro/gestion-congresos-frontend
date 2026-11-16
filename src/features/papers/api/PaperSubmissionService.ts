@@ -14,7 +14,10 @@ const paperPath = (code: string) => `/api/papers/${encodeURIComponent(code)}`;
 export const PaperSubmissionService = {
   async getCongressRules(congressCode: string, signal?: AbortSignal) {
     return (
-      await api.get<PaperCongressRules>(congressPath(congressCode), { signal })
+      await api.get<PaperCongressRules>(
+        `${congressPath(congressCode)}/paper-submission-rules`,
+        { signal },
+      )
     ).data;
   },
 
