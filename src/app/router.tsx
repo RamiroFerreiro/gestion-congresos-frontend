@@ -6,6 +6,7 @@ import RegisterPage from "../features/auth/pages/RegisterPage";
 import ForgotPasswordPage from "../features/auth/pages/ForgotPasswordPage";
 import ResetPasswordPage from "../features/auth/pages/ResetPasswordPage";
 import CongressesPage from "../features/congresses/pages/CongressesPage";
+import PaperSubmissionPage from "../features/papers/pages/PaperSubmissionPage";
 import PaymentsPage from "../features/payments/pages/PaymentsPage";
 
 function AppRouter() {
@@ -31,6 +32,14 @@ function AppRouter() {
           element={<PaymentsPage />}
         />
         <Route path="/congresses" element={<CongressesPage />} />
+        <Route
+          path="/congresses/:congressCode/papers/new"
+          element={<PaperSubmissionPage />}
+        />
+        <Route
+          path="/congresses/:congressCode/papers/:paperCode/edit"
+          element={<PaperSubmissionPage />}
+        />
         <Route
           path="/dashboard"
           element={<div>Panel Principal (Próximamente)</div>}
