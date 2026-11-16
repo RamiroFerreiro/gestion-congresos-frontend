@@ -31,7 +31,7 @@ export const PaymentService = {
   ) {
     return (
       await api.get<AcceptedPapersPage>(
-        `/api/papers/${encodeURIComponent(congressCode)}/papers`,
+        `/api/papers/congresses/${encodeURIComponent(congressCode)}`,
         {
           params: {
             status: "ACCEPTED",

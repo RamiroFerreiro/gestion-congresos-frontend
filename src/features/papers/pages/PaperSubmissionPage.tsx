@@ -1,0 +1,939 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
+import { useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import {
+  Link as RouterLink,
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
+import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  MenuItem,
+  Paper,
+  Snackbar,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
+import { useAuth } from "../../auth/context/AuthContext";
+import { PaperSubmissionService } from "../api/PaperSubmissionService";
+import PaperSummaryEditor from "../components/PaperSummaryEditor";
+import {
+  createPaperSubmissionSchema,
+  parseKeywords,
+} from "../schemas/paperSubmissionSchema";
+import type {
+  CreatePaperRequest,
+  PaperCongressRules,
+  PaperDetail,
+  PaperSubmissionFormValues,
+  UpdatePaperRequest,
+} from "../types/paperSubmission";
+
+type SubmissionNotice = {
+  message: string;
+  severity: "success" | "error";
+};
+
+function getLoadError(error: unknown) {
+  if (isAxiosError(error)) {
+    if (error.response?.status === 404) {
+      return "No se encontró el congreso o no tenés una participación activa en él.";
+    }
+    if (error.response?.status === 401) {
+      return "Tu sesión no es válida. Volvé a iniciar sesión para continuar.";
+    }
+    if (error.response?.status === 403) {
+      return "No tenés permisos para crear trabajos en este congreso.";
+    }
+  }
+
+  return "No se pudo cargar la información necesaria para crear el trabajo.";
+}
+
+function getMutationError(error: unknown) {
+  if (isAxiosError<{ message?: string }>(error)) {
+    if (error.response?.status === 409) {
+      return "El trabajo tiene solicitudes de coautoría pendientes.";
+    }
+    if (error.response?.data?.message) return error.response.data.message;
+  }
+
+  return "No se pudo completar la operación. Revisá los datos e intentá nuevamente.";
+}
+
+function hasPendingAuthorRequests(error: unknown) {
+  return isAxiosError(error) && error.response?.status === 409;
+}
+
+function normalizeKeyword(keyword: string) {
+  return keyword.trim().toLocaleLowerCase("es-AR");
+}
+
+interface PaperSubmissionFormProps {
+  congress: PaperCongressRules;
+  responsibleAuthor: {
+    fullName: string;
+    institution: string | null;
+  };
+  paper?: PaperDetail;
+  canEdit: boolean;
+  isSaving: boolean;
+  isRemovingAuthor: boolean;
+  onSave: (values: PaperSubmissionFormValues) => Promise<void>;
+  onSubmitPaper: (values: PaperSubmissionFormValues) => Promise<void>;
+  onRemoveAuthor: (authorUserCode: string) => Promise<void>;
+}
+
+function getKeywordRule(congress: PaperCongressRules) {
+  const min = congress.minKeywords;
+  const max = congress.maxKeywords;
+  const titleRule = congress.keywordRepetition ? ", sin repetir el título" : "";
+
+  if (min && max) return `Entre ${min} y ${max}${titleRule}`;
+  if (min) return `Mínimo ${min}${titleRule}`;
+  if (max) return `Hasta ${max}${titleRule}`;
+
+  return congress.keywordRepetition
+    ? "Sin repetir el título"
+    : "Sin límite definido";
+}
+
+function CongressRequirements({ congress }: { congress: PaperCongressRules }) {
+  return (
+    <Paper
+      variant="outlined"
+      sx={{
+        borderColor: "divider",
+        borderLeft: 3,
+        borderLeftColor: "primary.main",
+        borderRadius: 1.5,
+        px: 2.75,
+        py: 2.25,
+      }}
+    >
+      <Typography
+        component="h2"
+        sx={{
+          fontFamily: "var(--font-serif)",
+          fontSize: "1.2rem",
+          fontWeight: 600,
+        }}
+      >
+        Requisitos del congreso
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
+        Estas condiciones fueron definidas por la organización y se validarán al
+        enviar el trabajo.
+      </Typography>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+          gap: 3,
+          mt: 2,
+        }}
+      >
+        <Box>
+          <Typography variant="body2" sx={{ fontWeight: 700 }}>
+            Palabras clave
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 0.25 }}>
+            {getKeywordRule(congress)}
+          </Typography>
+        </Box>
+        <Box>
+          <Typography variant="body2" sx={{ fontWeight: 700 }}>
+            Autores
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 0.25 }}>
+            Hasta {congress.maxNumberOfAuthors} por trabajo
+          </Typography>
+        </Box>
+      </Box>
+    </Paper>
+  );
+}
+
+function PaperAuthors({
+  maxNumberOfAuthors,
+  responsibleAuthor,
+  paper,
+  canEdit,
+  isBusy,
+  onRemoveAuthor,
+}: {
+  maxNumberOfAuthors: number;
+  responsibleAuthor: PaperSubmissionFormProps["responsibleAuthor"];
+  paper?: PaperDetail;
+  canEdit: boolean;
+  isBusy: boolean;
+  onRemoveAuthor: (authorUserCode: string) => Promise<void>;
+}) {
+  const acceptedAuthors = paper
+    ? [...paper.authors]
+        .filter((author) => author.status === "ACCEPTED")
+        .sort((first, second) => first.authorOrder - second.authorOrder)
+    : [];
+  const authors =
+    acceptedAuthors.length > 0
+      ? acceptedAuthors
+      : [
+          {
+            userCode: "responsible-author",
+            fullName: responsibleAuthor.fullName,
+            institution:
+              responsibleAuthor.institution || "Institución sin informar",
+            mainAuthor: true,
+          },
+        ];
+
+  return (
+    <Paper
+      variant="outlined"
+      sx={{ borderColor: "divider", borderRadius: 2, p: 3 }}
+    >
+      <Typography
+        component="h2"
+        sx={{
+          fontFamily: "var(--font-serif)",
+          fontSize: "1.45rem",
+          fontWeight: 600,
+        }}
+      >
+        Autores
+        <Box
+          component="span"
+          sx={{ color: "text.secondary", fontSize: "1.1rem" }}
+        >
+          {" "}
+          — máximo {maxNumberOfAuthors} autores
+        </Box>
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
+        {paper
+          ? "Se muestran los autores aceptados. Los coautores se incorporan mediante solicitudes externas al trabajo."
+          : "Al crear el borrador, figurás como autor responsable. Los demás autores podrán solicitar incorporarse al trabajo y deberás aceptar su solicitud."}
+      </Typography>
+      <Stack spacing={1.5} sx={{ mt: 2.25 }}>
+        {authors.map((author) => (
+          <Box
+            key={author.userCode}
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr) auto",
+              gap: 2,
+              alignItems: "center",
+            }}
+          >
+            <TextField
+              label={author.mainAuthor ? "Autor responsable" : "Coautor"}
+              value={author.fullName}
+              fullWidth
+              slotProps={{ input: { readOnly: true } }}
+            />
+            <TextField
+              label="Institución"
+              value={author.institution || "Institución sin informar"}
+              fullWidth
+              slotProps={{ input: { readOnly: true } }}
+            />
+            {!author.mainAuthor && paper && (
+              <Button
+                aria-label={`Quitar a ${author.fullName} del trabajo`}
+                color="error"
+                disabled={!canEdit || isBusy}
+                onClick={() => void onRemoveAuthor(author.userCode)}
+                sx={{ minWidth: 40, px: 1, fontSize: "1.5rem" }}
+              >
+                ×
+              </Button>
+            )}
+            {(author.mainAuthor || !paper) && (
+              <Box aria-hidden="true" sx={{ width: 40 }} />
+            )}
+          </Box>
+        ))}
+      </Stack>
+    </Paper>
+  );
+}
+
+function PaperSubmissionForm({
+  congress,
+  responsibleAuthor,
+  paper,
+  canEdit,
+  isSaving,
+  isRemovingAuthor,
+  onSave,
+  onSubmitPaper,
+  onRemoveAuthor,
+}: PaperSubmissionFormProps) {
+  const form = useForm<PaperSubmissionFormValues>({
+    resolver: zodResolver(createPaperSubmissionSchema(congress)),
+    defaultValues: {
+      title: "",
+      thematicArea: "",
+      keywords: "",
+      summary: "",
+    },
+  });
+
+  useEffect(() => {
+    if (!paper) return;
+
+    form.reset({
+      title: paper.title,
+      thematicArea: paper.thematicArea,
+      keywords: paper.keywords.join(", "),
+      summary: paper.summary,
+    });
+  }, [form, paper]);
+
+  const handleSubmitPaper = async (values: PaperSubmissionFormValues) => {
+    const strictValidation = createPaperSubmissionSchema(congress, {
+      enforceMinimumKeywords: true,
+    }).safeParse(values);
+
+    if (!strictValidation.success) {
+      for (const issue of strictValidation.error.issues) {
+        const field = issue.path[0];
+        if (
+          field === "title" ||
+          field === "thematicArea" ||
+          field === "keywords" ||
+          field === "summary"
+        ) {
+          form.setError(field, { message: issue.message });
+        }
+      }
+      return;
+    }
+
+    await onSubmitPaper(values);
+  };
+  const isBusy = isSaving || isRemovingAuthor;
+
+  return (
+    <Stack
+      component="form"
+      noValidate
+      spacing={3}
+      onSubmit={(event) => event.preventDefault()}
+    >
+      <Box>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            fontFamily: "var(--font-mono)",
+            letterSpacing: "0.04em",
+            mb: 0.75,
+          }}
+        >
+          {congress.name}
+        </Typography>
+        <Typography
+          component="h1"
+          sx={{
+            fontFamily: "var(--font-serif)",
+            fontSize: "2rem",
+            fontWeight: 600,
+          }}
+        >
+          Envío de trabajo científico
+        </Typography>
+        <Typography color="text.secondary" sx={{ mt: 0.75 }}>
+          Completá la información que será evaluada por el congreso.
+        </Typography>
+      </Box>
+
+      <CongressRequirements congress={congress} />
+
+      <Paper
+        variant="outlined"
+        sx={{ borderColor: "divider", borderRadius: 2, p: 3 }}
+      >
+        <Stack spacing={2.5}>
+          <Typography
+            component="h2"
+            sx={{ fontFamily: "var(--font-serif)", fontSize: "1.45rem" }}
+          >
+            Datos del trabajo
+          </Typography>
+          <TextField
+            {...form.register("title")}
+            label="Título del trabajo"
+            placeholder="Ej.: Efecto del envasado activo en frutas mínimamente procesadas"
+            required
+            fullWidth
+            disabled={!canEdit || isBusy}
+            error={!!form.formState.errors.title}
+            helperText={form.formState.errors.title?.message}
+          />
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+              gap: 2,
+            }}
+          >
+            <TextField
+              {...form.register("thematicArea")}
+              select
+              label="Área temática"
+              required
+              fullWidth
+              disabled={!canEdit || isBusy}
+              error={!!form.formState.errors.thematicArea}
+              helperText={form.formState.errors.thematicArea?.message}
+            >
+              {congress.thematicAreas.map((area) => (
+                <MenuItem key={area} value={area}>
+                  {area}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              {...form.register("keywords")}
+              label="Palabras clave"
+              required
+              fullWidth
+              disabled={!canEdit || isBusy}
+              error={!!form.formState.errors.keywords}
+              helperText={
+                form.formState.errors.keywords?.message ||
+                `Separalas con comas. ${getKeywordRule(congress)}.`
+              }
+            />
+          </Box>
+        </Stack>
+      </Paper>
+
+      <PaperAuthors
+        maxNumberOfAuthors={congress.maxNumberOfAuthors}
+        responsibleAuthor={responsibleAuthor}
+        paper={paper}
+        canEdit={canEdit}
+        isBusy={isBusy}
+        onRemoveAuthor={onRemoveAuthor}
+      />
+
+      <Paper
+        variant="outlined"
+        sx={{ borderColor: "divider", borderRadius: 2, p: 3 }}
+      >
+        <Typography
+          component="h2"
+          sx={{
+            fontFamily: "var(--font-serif)",
+            fontSize: "1.45rem",
+            fontWeight: 600,
+          }}
+        >
+          Resumen
+        </Typography>
+        <Box sx={{ mt: 2 }}>
+          <Controller
+            control={form.control}
+            name="summary"
+            render={({ field, fieldState }) => (
+              <PaperSummaryEditor
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                error={fieldState.error?.message}
+                disabled={!canEdit || isBusy}
+              />
+            )}
+          />
+        </Box>
+      </Paper>
+
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+        <Button
+          variant="contained"
+          disabled={!canEdit || isBusy}
+          onClick={() => void form.handleSubmit(handleSubmitPaper)()}
+        >
+          Enviar trabajo
+        </Button>
+        <Button
+          variant="outlined"
+          disabled={!canEdit || isBusy}
+          onClick={() => void form.handleSubmit(onSave)()}
+        >
+          Guardar borrador
+        </Button>
+        <Button component={RouterLink} to="/congresses" color="inherit">
+          Cancelar
+        </Button>
+      </Box>
+    </Stack>
+  );
+}
+
+export default function PaperSubmissionPage() {
+  const { congressCode = "", paperCode } = useParams();
+  const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [notice, setNotice] = useState<SubmissionNotice | null>(null);
+  const [pendingSubmissionCode, setPendingSubmissionCode] = useState<
+    string | null
+  >(null);
+  const routeNotice = location.state?.paperSubmissionNotice as
+    SubmissionNotice | undefined;
+  const routePendingSubmissionCode = location.state
+    ?.paperSubmissionPendingCode as string | undefined;
+  const paperQueryKey = ["paper-submission-paper", user?.userId, paperCode];
+  const congress = useQuery({
+    queryKey: ["paper-submission-congress", user?.userId, congressCode],
+    queryFn: ({ signal }) =>
+      PaperSubmissionService.getCongressRules(congressCode, signal),
+    enabled: !!user && !!congressCode,
+    retry: false,
+  });
+  const paper = useQuery({
+    queryKey: paperQueryKey,
+    queryFn: ({ signal }) =>
+      PaperSubmissionService.getPaper(paperCode!, signal),
+    enabled: !!user && !!paperCode,
+    retry: false,
+  });
+  const participation = useQuery({
+    queryKey: ["paper-submission-participation", user?.userId, congressCode],
+    queryFn: ({ signal }) =>
+      PaperSubmissionService.getMyParticipation(congressCode, signal),
+    enabled: !!user && !!congressCode,
+    retry: false,
+  });
+  const createPaper = useMutation({
+    mutationFn: (payload: CreatePaperRequest) =>
+      PaperSubmissionService.createPaper(payload),
+  });
+  const updatePaper = useMutation({
+    mutationFn: ({
+      paperCode: code,
+      payload,
+    }: {
+      paperCode: string;
+      payload: UpdatePaperRequest;
+    }) => PaperSubmissionService.updatePaper(code, payload),
+  });
+  const removeAuthor = useMutation({
+    mutationFn: ({
+      paperCode: code,
+      authorUserCode,
+    }: {
+      paperCode: string;
+      authorUserCode: string;
+    }) => PaperSubmissionService.removeAuthor(code, authorUserCode),
+  });
+  const submitPaper = useMutation({
+    mutationFn: ({
+      paperCode: code,
+      confirmDiscardPendingRequests = false,
+    }: {
+      paperCode: string;
+      confirmDiscardPendingRequests?: boolean;
+    }) =>
+      PaperSubmissionService.submitPaper(code, confirmDiscardPendingRequests),
+  });
+
+  if (!user) return null;
+
+  if (
+    congress.isPending ||
+    participation.isPending ||
+    (!!paperCode && paper.isPending)
+  ) {
+    return (
+      <Box
+        role="status"
+        sx={{ display: "flex", alignItems: "center", gap: 2, py: 4 }}
+      >
+        <CircularProgress size={24} />
+        <Typography>Cargando información del congreso…</Typography>
+      </Box>
+    );
+  }
+
+  if (
+    congress.isError ||
+    participation.isError ||
+    (!!paperCode && paper.isError)
+  ) {
+    return (
+      <Stack spacing={2}>
+        <Button
+          component={RouterLink}
+          to="/congresses"
+          sx={{ alignSelf: "flex-start" }}
+        >
+          Volver a mis congresos
+        </Button>
+        <Alert
+          severity="error"
+          action={
+            <Button
+              color="inherit"
+              onClick={() => {
+                void congress.refetch();
+                void participation.refetch();
+                void paper.refetch();
+              }}
+            >
+              Reintentar
+            </Button>
+          }
+        >
+          {getLoadError(congress.error ?? participation.error ?? paper.error)}
+        </Alert>
+      </Stack>
+    );
+  }
+
+  const participant = participation.data;
+  const canAccessSubmission =
+    participant.active &&
+    !!participant.institution?.trim() &&
+    (participant.role === "LISTENER" || participant.role === "EXPOSITOR");
+
+  if (!canAccessSubmission) {
+    return (
+      <Stack spacing={2}>
+        <Button
+          component={RouterLink}
+          to="/congresses"
+          sx={{ alignSelf: "flex-start" }}
+        >
+          Volver a mis congresos
+        </Button>
+        <Alert severity="warning">
+          Para crear un trabajo necesitás una participación activa como LISTENER
+          o EXPOSITOR y una institución informada en este congreso.
+        </Alert>
+      </Stack>
+    );
+  }
+
+  if (paper.data && paper.data.congressCode !== congressCode) {
+    return (
+      <Alert severity="error">
+        El trabajo no pertenece al congreso seleccionado.
+      </Alert>
+    );
+  }
+
+  const isResponsible =
+    !paper.data ||
+    paper.data.authors.some(
+      (author) =>
+        author.mainAuthor && author.userCode === participant.user.code,
+    );
+  const canEdit =
+    !paper.data || (paper.data.status === "NOT_SUBMITTED" && isResponsible);
+  const isBusy =
+    createPaper.isPending ||
+    updatePaper.isPending ||
+    removeAuthor.isPending ||
+    submitPaper.isPending;
+  const displayedNotice = notice ?? routeNotice;
+  const displayedPendingSubmissionCode =
+    pendingSubmissionCode ?? routePendingSubmissionCode;
+  const editPath = (newPaperCode: string) =>
+    `/congresses/${encodeURIComponent(congressCode)}/papers/${encodeURIComponent(newPaperCode)}/edit`;
+  const refreshPaper = async () => {
+    await queryClient.invalidateQueries({ queryKey: paperQueryKey });
+    await paper.refetch();
+  };
+  const clearRoutePendingSubmission = () => {
+    if (!routePendingSubmissionCode) return;
+    navigate(location.pathname, {
+      replace: true,
+      state: routeNotice ? { paperSubmissionNotice: routeNotice } : null,
+    });
+  };
+  const closeNotice = () => {
+    setNotice(null);
+    if (routeNotice) {
+      navigate(location.pathname, {
+        replace: true,
+        state: routePendingSubmissionCode
+          ? { paperSubmissionPendingCode: routePendingSubmissionCode }
+          : null,
+      });
+    }
+  };
+  const buildCreatePayload = (
+    values: PaperSubmissionFormValues,
+  ): CreatePaperRequest => ({
+    title: values.title.trim(),
+    thematicArea: values.thematicArea,
+    summary: values.summary,
+    keywords: parseKeywords(values.keywords),
+    congressCode,
+    authorUserCodes: [participant.user.code],
+  });
+  const moveToCreatedPaper = (
+    createdPaper: PaperDetail,
+    nextNotice: SubmissionNotice,
+  ) => {
+    navigate(editPath(createdPaper.code), {
+      replace: true,
+      state: { paperSubmissionNotice: nextNotice },
+    });
+  };
+  const persistExistingDraft = async (values: PaperSubmissionFormValues) => {
+    if (!paper.data) return;
+
+    const currentPaper = paper.data;
+    const nextKeywords = parseKeywords(values.keywords);
+    const currentKeywordValues = new Set(
+      currentPaper.keywords.map(normalizeKeyword),
+    );
+    const nextKeywordValues = new Set(nextKeywords.map(normalizeKeyword));
+    const keywordsToRemove = currentPaper.keywords.filter(
+      (keyword) => !nextKeywordValues.has(normalizeKeyword(keyword)),
+    );
+    const keywordsToAdd = nextKeywords.filter(
+      (keyword) => !currentKeywordValues.has(normalizeKeyword(keyword)),
+    );
+
+    try {
+      await updatePaper.mutateAsync({
+        paperCode: currentPaper.code,
+        payload: {
+          title: values.title.trim(),
+          thematicArea: values.thematicArea,
+          summary: values.summary,
+        },
+      });
+      await Promise.all(
+        keywordsToRemove.map((keyword) =>
+          PaperSubmissionService.removeKeyword(currentPaper.code, keyword),
+        ),
+      );
+      await Promise.all(
+        keywordsToAdd.map((keyword) =>
+          PaperSubmissionService.addKeyword(currentPaper.code, keyword),
+        ),
+      );
+    } finally {
+      await refreshPaper();
+    }
+  };
+  const completeSubmission = async (
+    code: string,
+    createdPaper?: PaperDetail,
+  ) => {
+    await submitPaper.mutateAsync({ paperCode: code });
+
+    if (createdPaper) {
+      moveToCreatedPaper(createdPaper, {
+        message: "El trabajo se envió a evaluación correctamente.",
+        severity: "success",
+      });
+      return;
+    }
+
+    await refreshPaper();
+    setNotice({
+      message: "El trabajo se envió a evaluación correctamente.",
+      severity: "success",
+    });
+  };
+  const requestSubmission = async (
+    code: string,
+    createdPaper?: PaperDetail,
+  ) => {
+    try {
+      await completeSubmission(code, createdPaper);
+    } catch (error) {
+      if (hasPendingAuthorRequests(error)) {
+        if (createdPaper) {
+          navigate(editPath(code), {
+            replace: true,
+            state: { paperSubmissionPendingCode: code },
+          });
+        } else {
+          setPendingSubmissionCode(code);
+        }
+        return;
+      }
+      throw error;
+    }
+  };
+  const handleSave = async (values: PaperSubmissionFormValues) => {
+    try {
+      if (paper.data) {
+        await persistExistingDraft(values);
+        setNotice({
+          message: "El borrador se actualizó correctamente.",
+          severity: "success",
+        });
+        return;
+      }
+
+      const createdPaper = await createPaper.mutateAsync(
+        buildCreatePayload(values),
+      );
+      moveToCreatedPaper(createdPaper, {
+        message: "El borrador se guardó correctamente.",
+        severity: "success",
+      });
+    } catch (error) {
+      setNotice({ message: getMutationError(error), severity: "error" });
+    }
+  };
+  const handleSubmitPaper = async (values: PaperSubmissionFormValues) => {
+    try {
+      if (paper.data) {
+        await persistExistingDraft(values);
+        await requestSubmission(paper.data.code);
+        return;
+      }
+
+      const createdPaper = await createPaper.mutateAsync(
+        buildCreatePayload(values),
+      );
+      await requestSubmission(createdPaper.code, createdPaper);
+    } catch (error) {
+      setNotice({ message: getMutationError(error), severity: "error" });
+    }
+  };
+  const handleRemoveAuthor = async (authorUserCode: string) => {
+    if (!paper.data) return;
+
+    try {
+      await removeAuthor.mutateAsync({
+        paperCode: paper.data.code,
+        authorUserCode,
+      });
+      await refreshPaper();
+      setNotice({ message: "El coautor fue eliminado.", severity: "success" });
+    } catch (error) {
+      setNotice({ message: getMutationError(error), severity: "error" });
+    }
+  };
+  const closePendingSubmissionDialog = () => {
+    setPendingSubmissionCode(null);
+    clearRoutePendingSubmission();
+  };
+  const confirmPendingSubmission = async () => {
+    if (!displayedPendingSubmissionCode) return;
+
+    try {
+      await submitPaper.mutateAsync({
+        paperCode: displayedPendingSubmissionCode,
+        confirmDiscardPendingRequests: true,
+      });
+      setPendingSubmissionCode(null);
+
+      if (paperCode === displayedPendingSubmissionCode) {
+        clearRoutePendingSubmission();
+        await refreshPaper();
+        setNotice({
+          message: "El trabajo se envió a evaluación correctamente.",
+          severity: "success",
+        });
+        return;
+      }
+
+      navigate(editPath(displayedPendingSubmissionCode), {
+        replace: true,
+        state: {
+          paperSubmissionNotice: {
+            message: "El trabajo se envió a evaluación correctamente.",
+            severity: "success",
+          },
+        },
+      });
+    } catch (error) {
+      setNotice({ message: getMutationError(error), severity: "error" });
+    }
+  };
+
+  return (
+    <>
+      {paper.data && !canEdit && (
+        <Alert
+          severity={
+            paper.data.status === "UNDER_EVALUATION" ? "success" : "info"
+          }
+          sx={{ mb: 3 }}
+        >
+          {paper.data.status === "UNDER_EVALUATION"
+            ? "Este trabajo ya fue enviado a evaluación y no admite cambios."
+            : "Sólo el autor responsable puede editar este borrador."}
+        </Alert>
+      )}
+      <PaperSubmissionForm
+        congress={congress.data}
+        responsibleAuthor={{
+          fullName: `${participant.user.lastName}, ${participant.user.firstName}`,
+          institution: participant.institution,
+        }}
+        paper={paper.data}
+        canEdit={canEdit}
+        isSaving={isBusy}
+        isRemovingAuthor={removeAuthor.isPending}
+        onSave={handleSave}
+        onSubmitPaper={handleSubmitPaper}
+        onRemoveAuthor={handleRemoveAuthor}
+      />
+      <Dialog
+        open={!!displayedPendingSubmissionCode}
+        onClose={isBusy ? undefined : closePendingSubmissionDialog}
+      >
+        <DialogTitle>Solicitudes de coautoría pendientes</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Hay solicitudes de incorporación pendientes. Si continuás, se
+            descartarán y el trabajo se enviará a evaluación.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button disabled={isBusy} onClick={closePendingSubmissionDialog}>
+            Volver al borrador
+          </Button>
+          <Button
+            variant="contained"
+            disabled={isBusy}
+            onClick={() => void confirmPendingSubmission()}
+          >
+            Descartar y enviar
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Snackbar
+        open={!!displayedNotice}
+        autoHideDuration={6000}
+        onClose={closeNotice}
+      >
+        <Alert
+          severity={displayedNotice?.severity}
+          variant="filled"
+          onClose={closeNotice}
+          sx={{ width: "100%" }}
+        >
+          {displayedNotice?.message}
+        </Alert>
+      </Snackbar>
+    </>
+  );
+}
