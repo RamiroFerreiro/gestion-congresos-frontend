@@ -5,7 +5,7 @@
 - **ID:** FE-04
 - **Nombre:** Envío y edición de borradores de trabajos científicos
 - **Responsable:** Maximiliano Calahorra
-- **Estado:** Validada — lista para commit y PR
+- **Estado:** Validada — pendiente de commit correctivo y actualización de PR
 - **Rama:** `feature/FE-04-paper-submission`
 - **Versión del prototipo:** `0.7.5`
 - **URL del prototipo:** https://prototipo-congresos.juanchonoli.chatgpt.site/?v=0.7.5
@@ -149,6 +149,11 @@ negrita, cursiva, subrayado, subíndices, superíndices y citas. La mención a
   `UNDER_EVALUATION` y bloquea la edición en FE-04.
 - RN-12: Con solicitudes `PENDING`, el responsable debe confirmar su descarte
   para enviar. El backend descarta y envía en la misma operación.
+- RN-13: La creación, edición, eliminación de coautores y envío sólo están
+  disponibles si el congreso está habilitado y el instante actual pertenece al
+  período de presentación, inclusive en sus extremos.
+- RN-14: El formulario muestra el conteo de autores `ACCEPTED` y bloquea el
+  envío si supera el máximo configurado por el congreso.
 
 ## 7. Datos e integración
 
@@ -166,7 +171,7 @@ negrita, cursiva, subrayado, subíndices, superíndices y citas. La mención a
 
 | Operación                         | Endpoint / servicio                                         | Estado     |
 | --------------------------------- | ----------------------------------------------------------- | ---------- |
-| Consultar reglas del congreso     | `GET /api/congresses/{congressCode}`                        | Disponible |
+| Consultar reglas del congreso     | `GET /api/congresses/{congressCode}/paper-submission-rules` | Disponible |
 | Consultar participación propia    | `GET /api/congresses/{congressCode}/participants/me`        | Disponible |
 | Crear borrador                    | `POST /api/papers`                                          | Disponible |
 | Consultar borrador                | `GET /api/papers/{paperCode}`                               | Disponible |
@@ -224,6 +229,8 @@ visible de guardado.
       backend.
 - [x] CA-11: La pantalla respeta las referencias ajustadas en 1366 × 768 y
       1920 × 1080, sin desbordamiento horizontal.
+- [x] CA-12: La feature consulta sólo el endpoint participante de reglas de
+      presentación y bloquea acciones fuera del período habilitado.
 
 ## 10. Dependencias y decisiones pendientes
 

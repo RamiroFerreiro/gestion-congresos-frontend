@@ -46,6 +46,11 @@ type SubmissionNotice = {
   severity: "success" | "error";
 };
 
+type SubmissionAvailability = {
+  isOpen: boolean;
+  message: string | null;
+};
+
 function getLoadError(error: unknown) {
   if (isAxiosError(error)) {
     if (error.response?.status === 404) {
@@ -81,6 +86,50 @@ function normalizeKeyword(keyword: string) {
   return keyword.trim().toLocaleLowerCase("es-AR");
 }
 
+function getSubmissionAvailability(
+  congress: PaperCongressRules,
+  now = new Date(),
+): SubmissionAvailability {
+  if (!congress.enabled) {
+    return {
+      isOpen: false,
+      message:
+        "El congreso se encuentra deshabilitado para la presentación de trabajos.",
+    };
+  }
+
+  const start = new Date(congress.presentationStartDate);
+  const end = new Date(congress.presentationEndDate);
+  if (
+    Number.isNaN(start.getTime()) ||
+    Number.isNaN(end.getTime()) ||
+    start > end
+  ) {
+    return {
+      isOpen: false,
+      message:
+        "El período de presentación del congreso no tiene fechas válidas.",
+    };
+  }
+
+  if (now < start) {
+    return {
+      isOpen: false,
+      message:
+        "La presentación de trabajos todavía no se encuentra habilitada.",
+    };
+  }
+
+  if (now > end) {
+    return {
+      isOpen: false,
+      message: "El período de presentación de trabajos ya finalizó.",
+    };
+  }
+
+  return { isOpen: true, message: null };
+}
+
 interface PaperSubmissionFormProps {
   congress: PaperCongressRules;
   responsibleAuthor: {
@@ -88,7 +137,9 @@ interface PaperSubmissionFormProps {
     institution: string | null;
   };
   paper?: PaperDetail;
-  canEdit: boolean;
+  canSave: boolean;
+  canSubmit: boolean;
+  canRemoveAuthors: boolean;
   isSaving: boolean;
   isRemovingAuthor: boolean;
   onSave: (values: PaperSubmissionFormValues) => Promise<void>;
@@ -170,14 +221,14 @@ function PaperAuthors({
   maxNumberOfAuthors,
   responsibleAuthor,
   paper,
-  canEdit,
+  canRemoveAuthors,
   isBusy,
   onRemoveAuthor,
 }: {
   maxNumberOfAuthors: number;
   responsibleAuthor: PaperSubmissionFormProps["responsibleAuthor"];
   paper?: PaperDetail;
-  canEdit: boolean;
+  canRemoveAuthors: boolean;
   isBusy: boolean;
   onRemoveAuthor: (authorUserCode: string) => Promise<void>;
 }) {
@@ -218,7 +269,7 @@ function PaperAuthors({
           sx={{ color: "text.secondary", fontSize: "1.1rem" }}
         >
           {" "}
-          — máximo {maxNumberOfAuthors} autores
+          — {authors.length} de {maxNumberOfAuthors} autores
         </Box>
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
@@ -253,7 +304,7 @@ function PaperAuthors({
               <Button
                 aria-label={`Quitar a ${author.fullName} del trabajo`}
                 color="error"
-                disabled={!canEdit || isBusy}
+                disabled={!canRemoveAuthors || isBusy}
                 onClick={() => void onRemoveAuthor(author.userCode)}
                 sx={{ minWidth: 40, px: 1, fontSize: "1.5rem" }}
               >
@@ -274,7 +325,9 @@ function PaperSubmissionForm({
   congress,
   responsibleAuthor,
   paper,
-  canEdit,
+  canSave,
+  canSubmit,
+  canRemoveAuthors,
   isSaving,
   isRemovingAuthor,
   onSave,
@@ -379,7 +432,7 @@ function PaperSubmissionForm({
             placeholder="Ej.: Efecto del envasado activo en frutas mínimamente procesadas"
             required
             fullWidth
-            disabled={!canEdit || isBusy}
+            disabled={!canSave || isBusy}
             error={!!form.formState.errors.title}
             helperText={form.formState.errors.title?.message}
           />
@@ -396,7 +449,7 @@ function PaperSubmissionForm({
               label="Área temática"
               required
               fullWidth
-              disabled={!canEdit || isBusy}
+              disabled={!canSave || isBusy}
               error={!!form.formState.errors.thematicArea}
               helperText={form.formState.errors.thematicArea?.message}
             >
@@ -411,7 +464,7 @@ function PaperSubmissionForm({
               label="Palabras clave"
               required
               fullWidth
-              disabled={!canEdit || isBusy}
+              disabled={!canSave || isBusy}
               error={!!form.formState.errors.keywords}
               helperText={
                 form.formState.errors.keywords?.message ||
@@ -426,7 +479,7 @@ function PaperSubmissionForm({
         maxNumberOfAuthors={congress.maxNumberOfAuthors}
         responsibleAuthor={responsibleAuthor}
         paper={paper}
-        canEdit={canEdit}
+        canRemoveAuthors={canRemoveAuthors}
         isBusy={isBusy}
         onRemoveAuthor={onRemoveAuthor}
       />
@@ -455,7 +508,7 @@ function PaperSubmissionForm({
                 onChange={field.onChange}
                 onBlur={field.onBlur}
                 error={fieldState.error?.message}
-                disabled={!canEdit || isBusy}
+                disabled={!canSave || isBusy}
               />
             )}
           />
@@ -465,14 +518,14 @@ function PaperSubmissionForm({
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
         <Button
           variant="contained"
-          disabled={!canEdit || isBusy}
+          disabled={!canSubmit || isBusy}
           onClick={() => void form.handleSubmit(handleSubmitPaper)()}
         >
           Enviar trabajo
         </Button>
         <Button
           variant="outlined"
-          disabled={!canEdit || isBusy}
+          disabled={!canSave || isBusy}
           onClick={() => void form.handleSubmit(onSave)()}
         >
           Guardar borrador
@@ -645,8 +698,17 @@ export default function PaperSubmissionPage() {
       (author) =>
         author.mainAuthor && author.userCode === participant.user.code,
     );
-  const canEdit =
+  const canEditPaper =
     !paper.data || (paper.data.status === "NOT_SUBMITTED" && isResponsible);
+  const submissionAvailability = getSubmissionAvailability(congress.data);
+  const acceptedAuthorCount = paper.data
+    ? paper.data.authors.filter((author) => author.status === "ACCEPTED").length
+    : 1;
+  const exceedsAuthorLimit =
+    acceptedAuthorCount > congress.data.maxNumberOfAuthors;
+  const canSave = canEditPaper && submissionAvailability.isOpen;
+  const canSubmit = canSave && !exceedsAuthorLimit;
+  const canRemoveAuthors = canSave;
   const isBusy =
     createPaper.isPending ||
     updatePaper.isPending ||
@@ -870,7 +932,18 @@ export default function PaperSubmissionPage() {
 
   return (
     <>
-      {paper.data && !canEdit && (
+      {!submissionAvailability.isOpen && submissionAvailability.message && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          {submissionAvailability.message}
+        </Alert>
+      )}
+      {exceedsAuthorLimit && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          El trabajo tiene {acceptedAuthorCount} autores aceptados y el congreso
+          admite un máximo de {congress.data.maxNumberOfAuthors}.
+        </Alert>
+      )}
+      {paper.data && !canEditPaper && (
         <Alert
           severity={
             paper.data.status === "UNDER_EVALUATION" ? "success" : "info"
@@ -889,7 +962,9 @@ export default function PaperSubmissionPage() {
           institution: participant.institution,
         }}
         paper={paper.data}
-        canEdit={canEdit}
+        canSave={canSave}
+        canSubmit={canSubmit}
+        canRemoveAuthors={canRemoveAuthors}
         isSaving={isBusy}
         isRemovingAuthor={removeAuthor.isPending}
         onSave={handleSave}
