@@ -8,6 +8,7 @@ import ResetPasswordPage from "../features/auth/pages/ResetPasswordPage";
 import CongressesPage from "../features/congresses/pages/CongressesPage";
 import PaperSubmissionPage from "../features/papers/pages/PaperSubmissionPage";
 import PaymentsPage from "../features/payments/pages/PaymentsPage";
+import AdminPapersPage from "../features/papers/pages/AdminPapersPage";
 
 function AppRouter() {
   return (
@@ -44,7 +45,12 @@ function AppRouter() {
           path="/dashboard"
           element={<div>Panel Principal (Próximamente)</div>}
         />
+        <Route
+          path="/congresses/:congressCode/papers"
+          element={<AdminPapersPage />}
+        />
       </Route>
+
     </Routes>
   );
 }

@@ -8,94 +8,106 @@ export default function MainLayout() {
   const { user, logout } = useAuth();
   const location = useLocation();
   const queryClient = useQueryClient();
-  if (!user || !localStorage.getItem("token"))
+
+  if (!user || !localStorage.getItem("token")) {
     return (
       <Navigate to="/auth/login" replace state={{ from: location.pathname }} />
     );
+  }
+
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "background.default", p: 4 }}>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        bgcolor: "background.default",
+      }}
+    >
+      {/* Banner superior full-width */}
       <Box
+        component="header"
         sx={{
-          maxWidth: 1200,
-          mx: "auto",
-          border: 1,
-          borderColor: "divider",
-          borderRadius: 2,
-          overflow: "hidden",
+          bgcolor: "primary.dark",
+          color: "common.white",
+          px: { xs: 2, sm: 4 },
+          py: 2,
+          display: "flex",
+          alignItems: "center",
+          gap: 2,
         }}
       >
-        <Box
-          component="header"
-          sx={{
-            bgcolor: "primary.dark",
-            color: "common.white",
-            px: 3,
-            py: 2,
-            display: "flex",
-            alignItems: "center",
-            gap: 2,
-          }}
-        >
-          <Box component="img" src={c4tIcon} alt="" sx={{ width: 40 }} />
-          <Box sx={{ flex: 1 }}>
-            <Box sx={{ display: "flex", alignItems: "baseline", gap: 1 }}>
-              <Typography
-                sx={{
-                  fontFamily: "var(--font-serif)",
-                  fontSize: "1.8rem",
-                  fontWeight: 700,
-                }}
-              >
-                C4T
-              </Typography>
-              <Typography
-                sx={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "0.65rem",
-                  letterSpacing: "0.12em",
-                }}
-              >
-                CALL FOR TALKS
-              </Typography>
-            </Box>
+        <Box component="img" src={c4tIcon} alt="" sx={{ width: 40 }} />
+        <Box sx={{ flex: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "baseline", gap: 1 }}>
+            <Typography
+              sx={{
+                fontFamily: "var(--font-serif)",
+                fontSize: "1.8rem",
+                fontWeight: 700,
+              }}
+            >
+              C4T
+            </Typography>
             <Typography
               sx={{
                 fontFamily: "var(--font-mono)",
-                fontSize: "0.6rem",
-                letterSpacing: "0.08em",
+                fontSize: "0.65rem",
+                letterSpacing: "0.12em",
               }}
             >
-              PLATAFORMA PARA CONGRESOS CIENTÍFICOS
+              CALL FOR TALKS
             </Typography>
           </Box>
-          <Button
-            color="inherit"
-            variant="outlined"
-            onClick={() => {
-              // Otra cuenta no debe recibir datos de la sesión anterior desde la caché.
-              queryClient.clear();
-              logout();
+          <Typography
+            sx={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "0.6rem",
+              letterSpacing: "0.08em",
             }}
           >
-            Cerrar sesión
-          </Button>
-        </Box>
-        <Box
-          sx={{
-            bgcolor: "action.hover",
-            px: 3,
-            py: 1.5,
-            borderBottom: 1,
-            borderColor: "divider",
-          }}
-        >
-          <Typography variant="body2" sx={{ fontFamily: "var(--font-mono)" }}>
-            Mis congresos
+            PLATAFORMA PARA CONGRESOS CIENTÍFICOS
           </Typography>
         </Box>
-        <Box component="main" sx={{ p: 4, minHeight: 420 }}>
-          <Outlet />
-        </Box>
+        <Button
+          color="inherit"
+          variant="outlined"
+          onClick={() => {
+            // Otra cuenta no debe recibir datos de la sesión anterior desde la caché.
+            queryClient.clear();
+            logout();
+          }}
+        >
+          Cerrar sesión
+        </Button>
+      </Box>
+
+      {/* Sub-barra de navegación */}
+      <Box
+        sx={{
+          bgcolor: "action.hover",
+          px: { xs: 2, sm: 4 },
+          py: 1.5,
+          borderBottom: 1,
+          borderColor: "divider",
+        }}
+      >
+        <Typography variant="body2" sx={{ fontFamily: "var(--font-mono)" }}>
+          Mis congresos
+        </Typography>
+      </Box>
+
+      {/* Área principal a pantalla completa */}
+      <Box
+        component="main"
+        sx={{
+          flex: 1,
+          width: "100%",
+          px: { xs: 2, sm: 4 },
+          py: 3,
+        }}
+      >
+        <Outlet />
       </Box>
     </Box>
   );

@@ -68,6 +68,20 @@ class CongressService {
       `/api/congresses/${congressId}/participants/${participantId}`,
     );
   }
+
+  getCongressByCode(congressCode: string, signal?: AbortSignal) {
+    return api.get<{
+      congressId: number;
+      code: string;
+      name: string;
+      place: string;
+      thematicAreas: string[];
+      enabled: boolean;
+      isFree: boolean;
+      isSingleBlind: boolean;
+      contactMail: string;
+    }>(`/api/congresses/${encodeURIComponent(congressCode)}`, { signal });
+  }
 }
 
 export default new CongressService();

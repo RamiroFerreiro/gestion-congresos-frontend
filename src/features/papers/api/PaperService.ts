@@ -2,9 +2,47 @@ import { api } from "../../../lib/api";
 import type {
   Paper,
   CreatePaperRequest,
+  PageResponse,
+  PaperFilterParams,
+  PaperSummary,
 } from "../types/paper";
 
 class PaperService {
+
+  // Listado paginado, filtrado y ordenado de trabajos de un congreso para el administrador
+  listCongressPapersAdmin(
+    congressCode: string,
+    filters: PaperFilterParams,
+    signal?: AbortSignal,
+  ) {
+    const cleanParams: Record<string, string | number | boolean> = {};
+
+    if (filters.status) cleanParams.status = filters.status;
+    if (filters.unassigned !== "" && filters.unassigned !== undefined) {
+      cleanParams.unassigned = filters.unassigned;
+    }
+    if (filters.pay !== "" && filters.pay !== undefined) {
+      cleanParams.pay = filters.pay;
+    }
+    if (filters.thematicArea?.trim()) {
+      cleanParams.thematicArea = filters.thematicArea.trim();
+    }
+    if (filters.search?.trim()) {
+      cleanParams.search = filters.search.trim();
+    }
+    if (filters.page !== undefined) cleanParams.page = filters.page;
+    if (filters.size !== undefined) cleanParams.size = filters.size;
+    if (filters.sort) cleanParams.sort = filters.sort;
+
+    return api.get<PageResponse<PaperSummary>>(
+      `/api/papers/congresses/${encodeURIComponent(congressCode)}`,
+      {
+        params: cleanParams,
+        signal,
+      },
+    );
+  }
+
   // Obtener trabajos de un congreso determinado
   listPapersByCongress(congressId: number) {
     return api.get<Paper[]>("/api/papers", {
