@@ -1,5 +1,10 @@
-import { Box, Button, Typography } from "@mui/material";
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Avatar, Box, Button, Typography } from "@mui/material";
+import {
+  Link as RouterLink,
+  Navigate,
+  Outlet,
+  useLocation,
+} from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../features/auth/context/AuthContext";
 import c4tIcon from "../assets/brand/c4t-login-icon.svg";
@@ -69,17 +74,70 @@ export default function MainLayout() {
             PLATAFORMA PARA CONGRESOS CIENTÍFICOS
           </Typography>
         </Box>
-        <Button
-          color="inherit"
-          variant="outlined"
-          onClick={() => {
-            // Otra cuenta no debe recibir datos de la sesión anterior desde la caché.
-            queryClient.clear();
-            logout();
-          }}
-        >
-          Cerrar sesión
-        </Button>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <Button
+            component={RouterLink}
+            to="/profile"
+            color="inherit"
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              textTransform: "none",
+              px: 1.5,
+              py: 0.5,
+              borderRadius: 1,
+              border: "1px solid rgba(255, 255, 255, 0.25)",
+              "&:hover": {
+                bgcolor: "rgba(255, 255, 255, 0.1)",
+                borderColor: "rgba(255, 255, 255, 0.5)",
+              },
+            }}
+          >
+            <Avatar
+              sx={{
+                width: 28,
+                height: 28,
+                bgcolor: "primary.main",
+                border: "1px solid rgba(255, 255, 255, 0.5)",
+                fontSize: "0.75rem",
+                fontWeight: 700,
+              }}
+            >
+              {user.firstName?.slice(0, 1) || "U"}
+              {user.lastName?.slice(0, 1) || ""}
+            </Avatar>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 600,
+                color: "common.white",
+                display: { xs: "none", sm: "inline" },
+              }}
+            >
+              {user.firstName}
+            </Typography>
+          </Button>
+
+          <Button
+            color="inherit"
+            variant="outlined"
+            onClick={() => {
+              // Otra cuenta no debe recibir datos de la sesión anterior desde la caché.
+              queryClient.clear();
+              logout();
+            }}
+            sx={{
+              borderColor: "rgba(255, 255, 255, 0.3)",
+              "&:hover": {
+                borderColor: "common.white",
+                bgcolor: "rgba(255, 255, 255, 0.08)",
+              },
+            }}
+          >
+            Cerrar sesión
+          </Button>
+        </Box>
       </Box>
 
       {/* Sub-barra de navegación */}
@@ -92,7 +150,22 @@ export default function MainLayout() {
           borderColor: "divider",
         }}
       >
-        <Typography variant="body2" sx={{ fontFamily: "var(--font-mono)" }}>
+        <Typography
+          component={RouterLink}
+          to="/congresses"
+          variant="body2"
+          sx={{
+            fontFamily: "var(--font-mono)",
+            color: "text.primary",
+            textDecoration: "none",
+            display: "inline-block",
+            cursor: "pointer",
+            "&:hover": {
+              textDecoration: "underline",
+              color: "primary.main",
+            },
+          }}
+        >
           Mis congresos
         </Typography>
       </Box>

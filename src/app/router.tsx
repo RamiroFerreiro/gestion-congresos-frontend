@@ -9,6 +9,8 @@ import CongressesPage from "../features/congresses/pages/CongressesPage";
 import PaperSubmissionPage from "../features/papers/pages/PaperSubmissionPage";
 import PaymentsPage from "../features/payments/pages/PaymentsPage";
 import AdminPapersPage from "../features/papers/pages/AdminPapersPage";
+import UserProfilePage from "../features/profile/pages/UserProfilePage";
+import CongressParticipantProfilePage from "../features/profile/pages/CongressParticipantProfilePage";
 
 function AppRouter() {
   return (
@@ -49,8 +51,12 @@ function AppRouter() {
           path="/congresses/:congressCode/papers"
           element={<AdminPapersPage />}
         />
+        <Route
+          path="/congresses/:congressCode/profile"
+          element={<CongressParticipantProfilePage />}
+        />
+        <Route path="/profile" element={<UserProfilePage />} />
       </Route>
-
     </Routes>
   );
 }
