@@ -21,6 +21,7 @@ import type { PaymentReview } from "../types/payment";
 import PaymentStatusChip from "./PaymentStatusChip";
 import PaymentReviewDialog from "./PaymentReviewDialog";
 import ReceiptDialog from "./ReceiptDialog";
+import { abstractBookKey } from "../../abstract-book/lib/abstractBookQueries";
 
 interface Props {
   congressCode: string;
@@ -51,6 +52,9 @@ export default function PaymentDetail({
   const refresh = async () => {
     await Promise.all([
       client.invalidateQueries({ queryKey: options.queryKey }),
+      client.invalidateQueries({
+        queryKey: abstractBookKey(user!.userId, congressCode),
+      }),
       client.invalidateQueries({
         queryKey: ["accepted-payment-papers", user!.userId, congressCode],
       }),

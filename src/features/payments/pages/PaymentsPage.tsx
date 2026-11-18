@@ -119,7 +119,7 @@ export default function PaymentsPage() {
             fontSize: "1.7rem",
           }}
         >
-          {isAdmin ? "Control de pagos" : "Estado de pago"}
+          {isAdmin ? "Control de pagos y Libro de Resúmenes" : "Estado de pago"}
         </Typography>
       </Box>
       {!isAdmin && !isExpositor ? (
@@ -134,6 +134,13 @@ export default function PaymentsPage() {
           Completá tu institución desde Mis congresos para consultar o gestionar
           pagos.
         </Alert>
+      ) : isAdmin && !paperCode ? (
+        <AdminPayments
+          key={congressCode}
+          congressCode={congressCode}
+          userId={user.userId}
+          free={congress.data.free}
+        />
       ) : congress.data.free ? (
         <Alert severity="info">
           Este congreso es gratuito. Los trabajos aceptados no requieren
@@ -147,12 +154,6 @@ export default function PaymentsPage() {
           isAdmin={isAdmin}
           isExpositor={isExpositor}
           userCode={participant?.user.code}
-        />
-      ) : isAdmin ? (
-        <AdminPayments
-          key={congressCode}
-          congressCode={congressCode}
-          userId={user.userId}
         />
       ) : (
         <>

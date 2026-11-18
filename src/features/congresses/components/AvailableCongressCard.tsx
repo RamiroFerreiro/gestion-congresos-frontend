@@ -173,7 +173,7 @@ export default function AvailableCongressCard({
                 variant="outlined"
               >
                 {participant.role === "ADMINISTRATOR"
-                  ? "Control de pagos"
+                  ? "Pagos y Libro de Resúmenes"
                   : "Consultar estado de pago"}
               </Button>
             ) : (
@@ -213,7 +213,7 @@ export default function AvailableCongressCard({
           fullWidth
           variant="outlined"
         >
-          Control de pagos
+          Pagos y Libro de Resúmenes
         </Button>
       )}
     </Paper>

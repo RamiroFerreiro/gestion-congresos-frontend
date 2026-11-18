@@ -5,6 +5,7 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   CircularProgress,
   Paper,
   Stack,
@@ -22,18 +23,26 @@ import { PaymentService } from "../api/PaymentService";
 import { getPaymentError } from "../lib/paymentErrors";
 import { paymentRecordOptions } from "../lib/paymentQueries";
 import PaymentStatusChip from "./PaymentStatusChip";
-import { paymentStates } from "../lib/paymentStates";
+import AbstractBookPanel from "../../abstract-book/components/AbstractBookPanel";
+import { abstractBookOptions } from "../../abstract-book/lib/abstractBookQueries";
+import { authorName } from "../../abstract-book/lib/abstractBookExport";
 
 export default function AdminPayments({
   congressCode,
   userId,
+  free,
 }: {
   congressCode: string;
   userId: number;
+  free: boolean;
 }) {
   const [page, setPage] = useState(0);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const book = useQuery(abstractBookOptions(userId, congressCode));
+  const includedCodes = new Set(
+    book.isError ? [] : book.data?.map((paper) => paper.code),
+  );
   const papers = useQuery({
     queryKey: ["accepted-payment-papers", userId, congressCode, page, search],
     queryFn: ({ signal }) =>
@@ -41,7 +50,7 @@ export default function AdminPayments({
     retry: false,
   });
   const records = useQueries({
-    queries: (papers.data?.content ?? []).map((paper) =>
+    queries: (free ? [] : (papers.data?.content ?? [])).map((paper) =>
       paymentRecordOptions(userId, congressCode, paper.code),
     ),
   });
@@ -49,8 +58,9 @@ export default function AdminPayments({
   return (
     <Stack spacing={2.5}>
       <Typography color="text.secondary">
-        Consultá los pagos de los trabajos académicamente aceptados y revisá los
-        comprobantes recibidos.
+        {free
+          ? "Los trabajos aprobados se incluyen en el libro sin validación de pago, porque este congreso es gratuito."
+          : "Solo los trabajos aprobados con pago confirmado se incluyen en el libro. Desde acá se revisan comprobantes y se genera la exportación final."}
       </Typography>
       <Box
         component="form"
@@ -92,16 +102,60 @@ export default function AdminPayments({
         <>
           <Box>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              Estados de los trabajos en esta página
+              El total del libro abarca todo el congreso. Los estados de pago
+              corresponden a esta página.
             </Typography>
             <Box
               sx={{
                 display: "grid",
-                gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: free ? "1fr" : "repeat(3, minmax(0, 1fr))",
+                },
                 gap: 2,
               }}
             >
-              {paymentStates.map((state) => (
+              {[
+                {
+                  label: "Listos para el Libro",
+                  color: "success.main",
+                  count:
+                    book.isPending || book.isError ? "—" : book.data.length,
+                  caption: "Todo el congreso",
+                },
+                ...(free
+                  ? []
+                  : [
+                      {
+                        label: "Comprobantes por revisar",
+                        color: "#7154A1",
+                        count: records.some(
+                          (record) => record.isPending || record.isError,
+                        )
+                          ? "—"
+                          : records.filter(
+                              (record) =>
+                                record.data?.payment.status ===
+                                "PENDING_APPROVAL",
+                            ).length,
+                        caption: "Página actual",
+                      },
+                      {
+                        label: "Sin comprobante o rechazados",
+                        color: "warning.main",
+                        count: records.some(
+                          (record) => record.isPending || record.isError,
+                        )
+                          ? "—"
+                          : records.filter(
+                              (record) =>
+                                record.data?.payment.status === null ||
+                                record.data?.payment.status === "REJECTED",
+                            ).length,
+                        caption: "Página actual",
+                      },
+                    ]),
+              ].map((state) => (
                 <Paper
                   key={state.label}
                   variant="outlined"
@@ -114,16 +168,12 @@ export default function AdminPayments({
                       color: state.color,
                     }}
                   >
-                    {
-                      records.filter(
-                        (record) =>
-                          record.isSuccess &&
-                          !record.isError &&
-                          record.data.payment.status === state.status,
-                      ).length
-                    }
+                    {state.count}
                   </Typography>
                   <Typography variant="body2">{state.label}</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {state.caption}
+                  </Typography>
                 </Paper>
               ))}
             </Box>
@@ -139,8 +189,9 @@ export default function AdminPayments({
             )}
             {records.some((record) => record.isError) && (
               <Alert severity="warning" sx={{ mt: 1 }}>
-                Algunos pagos no pudieron consultarse y no se incluyen en los
-                contadores. Podés reintentar en la fila correspondiente.
+                Algunos pagos no pudieron consultarse. Los contadores de pago se
+                muestran como no disponibles hasta completar la consulta. Podés
+                reintentar en la fila correspondiente.
               </Alert>
             )}
           </Box>
@@ -161,13 +212,24 @@ export default function AdminPayments({
                   <TableRow>
                     <TableCell>Código</TableCell>
                     <TableCell>Trabajo</TableCell>
+                    <TableCell>Presentador / autores</TableCell>
                     <TableCell>Pago</TableCell>
+                    <TableCell align="center">Incluir en libro</TableCell>
                     <TableCell>Acciones</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {papers.data.content.map((paper, index) => {
                     const record = records[index];
+                    const authors = free
+                      ? book.data
+                          ?.find((included) => included.code === paper.code)
+                          ?.authors.map(authorName)
+                          .join("; ")
+                      : record?.data?.paper.authors
+                          .filter((author) => author.status === "ACCEPTED")
+                          .map((author) => author.fullName)
+                          .join("; ");
                     return (
                       <TableRow key={paper.code}>
                         <TableCell
@@ -182,7 +244,16 @@ export default function AdminPayments({
                           {paper.title}
                         </TableCell>
                         <TableCell>
-                          {record.isPending ? (
+                          <Typography variant="body2">
+                            {authors || "—"}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          {free ? (
+                            <Typography variant="body2" color="text.secondary">
+                              No requiere pago
+                            </Typography>
+                          ) : record.isPending ? (
                             <Typography variant="body2">
                               Consultando…
                             </Typography>
@@ -204,17 +275,49 @@ export default function AdminPayments({
                             />
                           )}
                         </TableCell>
+                        <TableCell align="center">
+                          {book.isPending || book.isError ? (
+                            <Typography variant="body2" color="text.secondary">
+                              Sin confirmar
+                            </Typography>
+                          ) : (
+                            <Checkbox
+                              checked={includedCodes.has(paper.code)}
+                              disabled
+                              slotProps={{
+                                input: {
+                                  "aria-label": includedCodes.has(paper.code)
+                                    ? `${paper.code}: incluido en el libro`
+                                    : `${paper.code}: no cumple las condiciones del libro`,
+                                },
+                              }}
+                              sx={{
+                                "&.Mui-checked.Mui-disabled": {
+                                  color: "success.main",
+                                },
+                              }}
+                            />
+                          )}
+                        </TableCell>
                         <TableCell>
-                          <Button
-                            component={RouterLink}
-                            to={`/congresses/${encodeURIComponent(congressCode)}/payments/${encodeURIComponent(paper.code)}`}
-                            variant="outlined"
-                            size="small"
-                          >
-                            {record.data?.payment.status === "PENDING_APPROVAL"
-                              ? "Revisar comprobante"
-                              : "Ver pago"}
-                          </Button>
+                          {free ? (
+                            <Button
+                              component="a"
+                              href="#abstract-book"
+                              size="small"
+                            >
+                              Ver libro
+                            </Button>
+                          ) : (
+                            <Button
+                              component={RouterLink}
+                              to={`/congresses/${encodeURIComponent(congressCode)}/payments/${encodeURIComponent(paper.code)}`}
+                              variant="outlined"
+                              size="small"
+                            >
+                              Ver detalle
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
@@ -244,6 +347,13 @@ export default function AdminPayments({
           )}
         </>
       )}
+      <Box id="abstract-book" sx={{ scrollMarginTop: 24 }}>
+        <AbstractBookPanel
+          congressCode={congressCode}
+          userId={userId}
+          free={free}
+        />
+      </Box>
     </Stack>
   );
 }
