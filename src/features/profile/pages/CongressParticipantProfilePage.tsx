@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   CircularProgress,
+  Stack,
   Typography,
 } from "@mui/material";
 import { Link as RouterLink, useParams } from "react-router-dom";
@@ -12,6 +13,8 @@ import CongressService from "../../congresses/api/CongressService";
 import { UserService } from "../api/UserService";
 import CongressParticipationCard from "../components/CongressParticipationCard";
 import UserProfileCard from "../components/UserProfileCard";
+import ChangePasswordCard from "../components/ChangePasswordCard";
+import ChangeEmailCard from "../components/ChangeEmailCard";
 
 export default function CongressParticipantProfilePage() {
   const { congressCode = "" } = useParams<{ congressCode: string }>();
@@ -146,18 +149,18 @@ export default function CongressParticipantProfilePage() {
 
       {/* Contenido principal cuando la participación y el usuario están disponibles */}
       {!isLoading && participationQuery.data && userQuery.data && (
-        <>
-          {/* Tarjeta 1: Datos específicos de la participación en el congreso */}
+        <Stack spacing={3}>
+          {/* Tarjeta 0: Datos específicos de la participación en el congreso */}
           <CongressParticipationCard
             congressCode={congressCode}
             congressName={congressQuery.data?.name}
             participation={participationQuery.data}
           />
 
-          {/* Tarjeta 2: Ficha unificada de datos personales globales */}
-          <Box sx={{ mt: 3 }}>
+          {/* Separador semántico entre participación y perfil global */}
+          <Box>
             <Typography
-              component="h3"
+              component="h2"
               sx={{
                 fontFamily: "var(--font-serif)",
                 fontSize: "1.2rem",
@@ -166,11 +169,21 @@ export default function CongressParticipantProfilePage() {
                 mb: 1.5,
               }}
             >
-              Datos personales del usuario
+              Perfil global del usuario
             </Typography>
-            <UserProfileCard user={userQuery.data} />
+
+            <Stack spacing={3}>
+              {/* Sección A: Datos personales */}
+              <UserProfileCard user={userQuery.data} />
+
+              {/* Sección B: Seguridad / Contraseña */}
+              <ChangePasswordCard />
+
+              {/* Sección C: Correo electrónico */}
+              <ChangeEmailCard user={userQuery.data} />
+            </Stack>
           </Box>
-        </>
+        </Stack>
       )}
     </Box>
   );

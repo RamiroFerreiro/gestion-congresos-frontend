@@ -41,6 +41,39 @@ export const AuthService = {
   },
 
   /**
+   * Paso 1 del flujo de doble confirmación.
+   * El usuario hace clic en el enlace enviado a su correo ACTUAL.
+   * El backend verifica la identidad y envía un segundo enlace al nuevo correo.
+   * Ruta pública: /confirm-email-change
+   */
+  confirmEmailChange: async (
+    token: string,
+    signal?: AbortSignal,
+  ): Promise<{ message: string }> => {
+    const response = await api.get<{ message: string }>(
+      `/api/auth/confirm-email-change?token=${encodeURIComponent(token)}`,
+      { signal },
+    );
+    return response.data;
+  },
+
+  /**
+   * Paso 2 del flujo de doble confirmación.
+   * El usuario hace clic en el enlace enviado a su NUEVO correo (/confirm-new-email).
+   * Llama al mismo endpoint unificado del backend enviando el token recibido.
+   */
+  confirmNewEmail: async (
+    token: string,
+    signal?: AbortSignal,
+  ): Promise<{ message: string }> => {
+    const response = await api.get<{ message: string }>(
+      `/api/auth/confirm-email-change?token=${encodeURIComponent(token)}`,
+      { signal },
+    );
+    return response.data;
+  },
+
+  /**
    * Envía la nueva contraseña junto con el token recibido por email.
    */
   resetPassword: async (

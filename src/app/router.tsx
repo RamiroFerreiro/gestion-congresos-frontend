@@ -5,6 +5,8 @@ import AuthLayout from "../layouts/AuthLayout";
 import RegisterPage from "../features/auth/pages/RegisterPage";
 import ForgotPasswordPage from "../features/auth/pages/ForgotPasswordPage";
 import ResetPasswordPage from "../features/auth/pages/ResetPasswordPage";
+import ConfirmEmailChangePage from "../features/auth/pages/ConfirmEmailChangePage";
+import ConfirmNewEmailPage from "../features/auth/pages/ConfirmNewEmailPage";
 import CongressesPage from "../features/congresses/pages/CongressesPage";
 import PaperSubmissionPage from "../features/papers/pages/PaperSubmissionPage";
 import PaymentsPage from "../features/payments/pages/PaymentsPage";
@@ -23,6 +25,19 @@ function AppRouter() {
         <Route path="register" element={<RegisterPage />} />
         <Route path="forgot-password" element={<ForgotPasswordPage />} />
         <Route path="reset-password" element={<ResetPasswordPage />} />
+      </Route>
+
+      {/* Ruta pública: confirmación de cambio de email (accesible sin sesión activa).
+          Se registra fuera de MainLayout para evitar la redirección al login. */}
+      <Route path="/confirm-email-change" element={<AuthLayout />}>
+        <Route index element={<ConfirmEmailChangePage />} />
+      </Route>
+
+      {/* Ruta pública: confirmación desde el NUEVO correo (paso 2 del doble flujo).
+          Ejecuta el cambio definitivo de email. Ruta separada para evitar conflictos
+          de caché con el paso 1 (staleTime: Infinity sobre el mismo queryKey). */}
+      <Route path="/confirm-new-email" element={<AuthLayout />}>
+        <Route index element={<ConfirmNewEmailPage />} />
       </Route>
 
       <Route element={<MainLayout />}>
