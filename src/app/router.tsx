@@ -60,6 +60,10 @@ function AppRouter() {
           element={<PaperSubmissionPage />}
         />
         <Route
+          path="/congresses/:congressCode/papers/:paperCode/correction"
+          element={<PaperSubmissionPage />}
+        />
+        <Route
           path="/congresses/:congressCode/papers/:paperCode"
           element={<PaperDetailPage />}
         />
