@@ -8,6 +8,7 @@ import ResetPasswordPage from "../features/auth/pages/ResetPasswordPage";
 import ConfirmEmailChangePage from "../features/auth/pages/ConfirmEmailChangePage";
 import ConfirmNewEmailPage from "../features/auth/pages/ConfirmNewEmailPage";
 import CongressesPage from "../features/congresses/pages/CongressesPage";
+import PaperDetailPage from "../features/papers/pages/PaperDetailPage";
 import PaperSubmissionPage from "../features/papers/pages/PaperSubmissionPage";
 import PaymentsPage from "../features/payments/pages/PaymentsPage";
 import AdminPapersPage from "../features/papers/pages/AdminPapersPage";
@@ -57,6 +58,10 @@ function AppRouter() {
         <Route
           path="/congresses/:congressCode/papers/:paperCode/edit"
           element={<PaperSubmissionPage />}
+        />
+        <Route
+          path="/congresses/:congressCode/papers/:paperCode"
+          element={<PaperDetailPage />}
         />
         <Route
           path="/dashboard"

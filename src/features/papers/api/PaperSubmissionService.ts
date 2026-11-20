@@ -4,6 +4,7 @@ import type {
   CreatePaperRequest,
   PaperCongressRules,
   PaperDetail,
+  PaperEvaluation,
   UpdatePaperRequest,
 } from "../types/paperSubmission";
 
@@ -32,6 +33,15 @@ export const PaperSubmissionService = {
 
   async getPaper(paperCode: string, signal?: AbortSignal) {
     return (await api.get<PaperDetail>(paperPath(paperCode), { signal })).data;
+  },
+
+  async getEvaluations(paperCode: string, signal?: AbortSignal) {
+    return (
+      await api.get<PaperEvaluation[]>(
+        `/api/evaluations/paper/${encodeURIComponent(paperCode)}`,
+        { signal },
+      )
+    ).data;
   },
 
   async createPaper(payload: CreatePaperRequest) {
