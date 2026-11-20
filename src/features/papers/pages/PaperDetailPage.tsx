@@ -1,6 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
-import { Link as RouterLink, useParams } from "react-router-dom";
+import {
+  Link as RouterLink,
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 import {
   Alert,
   Box,
@@ -8,6 +13,7 @@ import {
   Chip,
   CircularProgress,
   Paper,
+  Snackbar,
   Stack,
   Typography,
 } from "@mui/material";
@@ -33,6 +39,11 @@ const statusColors: Record<PaperStatus, string> = {
   ACCEPTED: "#2E6B4F",
   REJECTED: "#9D2F3E",
   NEEDS_REVISION: "#9B6B1F",
+};
+
+type DetailNotice = {
+  message: string;
+  severity: "success" | "error";
 };
 
 function formatDateTime(value: string | null) {
@@ -330,6 +341,10 @@ function getLoadError(error: unknown) {
 export default function PaperDetailPage() {
   const { congressCode = "", paperCode = "" } = useParams();
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const routeNotice = location.state?.paperDetailNotice as
+    DetailNotice | undefined;
   const canLoad = !!user && !!congressCode && !!paperCode;
 
   const paper = useQuery({
@@ -540,12 +555,34 @@ export default function PaperDetailPage() {
         )}
         {canShowCorrectionAction && (
           <Box sx={{ mt: 2.5 }}>
-            <Button variant="contained" disabled>
+            <Button
+              component={RouterLink}
+              to={`/congresses/${encodeURIComponent(congressCode)}/papers/${encodeURIComponent(paper.data.code)}/correction`}
+              variant="contained"
+            >
               Corregir y reenviar
             </Button>
           </Box>
         )}
       </Paper>
+      <Snackbar
+        open={!!routeNotice}
+        autoHideDuration={6000}
+        onClose={() =>
+          navigate(location.pathname, { replace: true, state: null })
+        }
+      >
+        <Alert
+          severity={routeNotice?.severity}
+          variant="filled"
+          onClose={() =>
+            navigate(location.pathname, { replace: true, state: null })
+          }
+          sx={{ width: "100%" }}
+        >
+          {routeNotice?.message}
+        </Alert>
+      </Snackbar>
     </Stack>
   );
 }
