@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   Link as RouterLink,
@@ -33,6 +33,10 @@ import {
   createPaperSubmissionSchema,
   parseKeywords,
 } from "../schemas/paperSubmissionSchema";
+import {
+  getSubmissionAvailability,
+  type SubmissionAvailability,
+} from "../utils/submissionAvailability";
 import type {
   CreatePaperRequest,
   PaperCongressRules,
@@ -45,11 +49,6 @@ import type {
 type SubmissionNotice = {
   message: string;
   severity: "success" | "error";
-};
-
-type SubmissionAvailability = {
-  isOpen: boolean;
-  message: string | null;
 };
 
 type SubmissionMode = "submission" | "correction";
@@ -87,50 +86,6 @@ function hasPendingAuthorRequests(error: unknown) {
 
 function normalizeKeyword(keyword: string) {
   return keyword.trim().toLocaleLowerCase("es-AR");
-}
-
-function getSubmissionAvailability(
-  congress: PaperCongressRules,
-  now = new Date(),
-): SubmissionAvailability {
-  if (!congress.enabled) {
-    return {
-      isOpen: false,
-      message:
-        "El congreso se encuentra deshabilitado para la presentación de trabajos.",
-    };
-  }
-
-  const start = new Date(congress.presentationStartDate);
-  const end = new Date(congress.presentationEndDate);
-  if (
-    Number.isNaN(start.getTime()) ||
-    Number.isNaN(end.getTime()) ||
-    start > end
-  ) {
-    return {
-      isOpen: false,
-      message:
-        "El período de presentación del congreso no tiene fechas válidas.",
-    };
-  }
-
-  if (now < start) {
-    return {
-      isOpen: false,
-      message:
-        "La presentación de trabajos todavía no se encuentra habilitada.",
-    };
-  }
-
-  if (now > end) {
-    return {
-      isOpen: false,
-      message: "El período de presentación de trabajos ya finalizó.",
-    };
-  }
-
-  return { isOpen: true, message: null };
 }
 
 function getCorrectionAvailability(
@@ -681,6 +636,9 @@ export default function PaperSubmissionPage() {
   const isCorrection = !!paperCode && location.pathname.endsWith("/correction");
   const queryClient = useQueryClient();
   const [notice, setNotice] = useState<SubmissionNotice | null>(null);
+  const [isRedirectingAfterSubmission, setIsRedirectingAfterSubmission] =
+    useState(false);
+  const submissionRedirectTimeout = useRef<number | null>(null);
   const [pendingSubmissionCode, setPendingSubmissionCode] = useState<
     string | null
   >(null);
@@ -754,6 +712,15 @@ export default function PaperSubmissionPage() {
     }) =>
       PaperSubmissionService.submitPaper(code, confirmDiscardPendingRequests),
   });
+
+  useEffect(
+    () => () => {
+      if (submissionRedirectTimeout.current !== null) {
+        window.clearTimeout(submissionRedirectTimeout.current);
+      }
+    },
+    [],
+  );
 
   if (!user) return null;
 
@@ -878,7 +845,8 @@ export default function PaperSubmissionPage() {
     createPaper.isPending ||
     updatePaper.isPending ||
     removeAuthor.isPending ||
-    submitPaper.isPending;
+    submitPaper.isPending ||
+    isRedirectingAfterSubmission;
   const displayedNotice = notice ?? routeNotice;
   const displayedPendingSubmissionCode =
     pendingSubmissionCode ?? routePendingSubmissionCode;
@@ -886,6 +854,7 @@ export default function PaperSubmissionPage() {
     `/congresses/${encodeURIComponent(congressCode)}/papers/${encodeURIComponent(newPaperCode)}/edit`;
   const detailPath = (currentPaperCode: string) =>
     `/congresses/${encodeURIComponent(congressCode)}/papers/${encodeURIComponent(currentPaperCode)}`;
+  const inboxPath = `/congresses/${encodeURIComponent(congressCode)}/my-papers`;
   const refreshPaper = async () => {
     await queryClient.invalidateQueries({ queryKey: paperQueryKey });
     await paper.refetch();
@@ -927,6 +896,24 @@ export default function PaperSubmissionPage() {
       state: { paperSubmissionNotice: nextNotice },
     });
   };
+  const redirectToInboxAfterSubmission = () => {
+    setNotice({
+      message: "El trabajo se envió a evaluación correctamente.",
+      severity: "success",
+    });
+    setIsRedirectingAfterSubmission(true);
+    void queryClient.invalidateQueries({
+      queryKey: ["participant-paper-inbox", user.userId, congressCode],
+    });
+
+    if (submissionRedirectTimeout.current !== null) {
+      window.clearTimeout(submissionRedirectTimeout.current);
+    }
+
+    submissionRedirectTimeout.current = window.setTimeout(() => {
+      navigate(inboxPath, { replace: true });
+    }, 3500);
+  };
   const persistExistingDraft = async (values: PaperSubmissionFormValues) => {
     if (!paper.data) return;
 
@@ -966,32 +953,16 @@ export default function PaperSubmissionPage() {
       await refreshPaper();
     }
   };
-  const completeSubmission = async (
-    code: string,
-    createdPaper?: PaperDetail,
-  ) => {
+  const completeSubmission = async (code: string) => {
     await submitPaper.mutateAsync({ paperCode: code });
-
-    if (createdPaper) {
-      moveToCreatedPaper(createdPaper, {
-        message: "El trabajo se envió a evaluación correctamente.",
-        severity: "success",
-      });
-      return;
-    }
-
-    await refreshPaper();
-    setNotice({
-      message: "El trabajo se envió a evaluación correctamente.",
-      severity: "success",
-    });
+    redirectToInboxAfterSubmission();
   };
   const requestSubmission = async (
     code: string,
     createdPaper?: PaperDetail,
   ) => {
     try {
-      await completeSubmission(code, createdPaper);
+      await completeSubmission(code);
     } catch (error) {
       if (hasPendingAuthorRequests(error)) {
         if (createdPaper) {
@@ -1088,26 +1059,8 @@ export default function PaperSubmissionPage() {
         confirmDiscardPendingRequests: true,
       });
       setPendingSubmissionCode(null);
-
-      if (paperCode === displayedPendingSubmissionCode) {
-        clearRoutePendingSubmission();
-        await refreshPaper();
-        setNotice({
-          message: "El trabajo se envió a evaluación correctamente.",
-          severity: "success",
-        });
-        return;
-      }
-
-      navigate(editPath(displayedPendingSubmissionCode), {
-        replace: true,
-        state: {
-          paperSubmissionNotice: {
-            message: "El trabajo se envió a evaluación correctamente.",
-            severity: "success",
-          },
-        },
-      });
+      clearRoutePendingSubmission();
+      redirectToInboxAfterSubmission();
     } catch (error) {
       setNotice({ message: getMutationError(error), severity: "error" });
     }

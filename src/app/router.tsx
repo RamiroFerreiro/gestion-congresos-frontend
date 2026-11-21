@@ -9,6 +9,7 @@ import ConfirmEmailChangePage from "../features/auth/pages/ConfirmEmailChangePag
 import ConfirmNewEmailPage from "../features/auth/pages/ConfirmNewEmailPage";
 import CongressesPage from "../features/congresses/pages/CongressesPage";
 import PaperDetailPage from "../features/papers/pages/PaperDetailPage";
+import PaperInboxPage from "../features/papers/pages/PaperInboxPage";
 import PaperSubmissionPage from "../features/papers/pages/PaperSubmissionPage";
 import PaymentsPage from "../features/payments/pages/PaymentsPage";
 import AdminPapersPage from "../features/papers/pages/AdminPapersPage";
@@ -51,6 +52,10 @@ function AppRouter() {
           element={<PaymentsPage />}
         />
         <Route path="/congresses" element={<CongressesPage />} />
+        <Route
+          path="/congresses/:congressCode/my-papers"
+          element={<PaperInboxPage />}
+        />
         <Route
           path="/congresses/:congressCode/papers/new"
           element={<PaperSubmissionPage />}
