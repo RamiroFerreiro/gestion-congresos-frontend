@@ -15,6 +15,7 @@ import PaymentsPage from "../features/payments/pages/PaymentsPage";
 import AdminPapersPage from "../features/papers/pages/AdminPapersPage";
 import UserProfilePage from "../features/profile/pages/UserProfilePage";
 import CongressParticipantProfilePage from "../features/profile/pages/CongressParticipantProfilePage";
+import PresenterHomePage from "../features/presenter-home/pages/PresenterHomePage";
 
 function AppRouter() {
   return (
@@ -52,6 +53,10 @@ function AppRouter() {
           element={<PaymentsPage />}
         />
         <Route path="/congresses" element={<CongressesPage />} />
+        <Route
+          path="/congresses/:congressCode/home"
+          element={<PresenterHomePage />}
+        />
         <Route
           path="/congresses/:congressCode/my-papers"
           element={<PaperInboxPage />}

@@ -178,9 +178,17 @@ export default function AvailableCongressCard({
               <Box sx={{ display: "grid", gap: 1 }}>
                 <Button
                   component={RouterLink}
-                  to={`/congresses/${encodeURIComponent(congress.code)}/my-papers`}
+                  to={`/congresses/${encodeURIComponent(congress.code)}/home`}
                   fullWidth
                   variant="contained"
+                >
+                  Ingresar al congreso
+                </Button>
+                <Button
+                  component={RouterLink}
+                  to={`/congresses/${encodeURIComponent(congress.code)}/my-papers`}
+                  fullWidth
+                  variant="outlined"
                 >
                   Mis trabajos
                 </Button>
