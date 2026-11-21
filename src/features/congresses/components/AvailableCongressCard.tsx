@@ -164,18 +164,37 @@ export default function AvailableCongressCard({
               >
                 Completar institución
               </Button>
-            ) : participant.role === "ADMINISTRATOR" ||
-              participant.role === "EXPOSITOR" ? (
+            ) : participant.role === "ADMINISTRATOR" ? (
               <Button
                 component={RouterLink}
                 to={`/congresses/${encodeURIComponent(congress.code)}/payments`}
                 fullWidth
                 variant="outlined"
               >
-                {participant.role === "ADMINISTRATOR"
-                  ? "Pagos y Libro de Resúmenes"
-                  : "Consultar estado de pago"}
+                Pagos y Libro de Resúmenes
               </Button>
+            ) : participant.role === "EXPOSITOR" ||
+              participant.role === "LISTENER" ? (
+              <Box sx={{ display: "grid", gap: 1 }}>
+                <Button
+                  component={RouterLink}
+                  to={`/congresses/${encodeURIComponent(congress.code)}/my-papers`}
+                  fullWidth
+                  variant="contained"
+                >
+                  Mis trabajos
+                </Button>
+                {participant.role === "EXPOSITOR" && (
+                  <Button
+                    component={RouterLink}
+                    to={`/congresses/${encodeURIComponent(congress.code)}/payments`}
+                    fullWidth
+                    variant="outlined"
+                  >
+                    Consultar estado de pago
+                  </Button>
+                )}
+              </Box>
             ) : (
               <>
                 <Button fullWidth variant="outlined" disabled>

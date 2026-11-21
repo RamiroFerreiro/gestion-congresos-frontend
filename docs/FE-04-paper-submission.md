@@ -77,7 +77,8 @@ para agregar autores desde esta vista.
 **Guardar borrador** crea un trabajo `NOT_SUBMITTED` si el formulario es válido.
 **Enviar trabajo** crea el trabajo y luego solicita su envío a evaluación. Si el
 segundo paso falla, el borrador creado se conserva en `NOT_SUBMITTED` y se
-informa el error.
+informa el error. Ante un envío exitoso, la confirmación se muestra de forma no
+bloqueante y luego se redirige a la bandeja de trabajos del congreso.
 
 Al guardar por primera vez, la ruta se actualiza a la edición del borrador y se
 muestra una confirmación no bloqueante mediante MUI `Snackbar`.
@@ -94,14 +95,11 @@ responsable y coautores aceptados mediante el flujo externo de solicitudes.
 Los coautores aceptados pueden mostrar la acción de eliminación; el responsable
 no. La vista no crea ni acepta solicitudes de coautoría.
 
-**Guardar borrador** actualiza los metadatos y las palabras clave aplicables.
-**Enviar trabajo** persiste cambios pendientes y solicita el envío.
-
-El destino funcional posterior al guardado o envío es la futura bandeja de
-trabajos del congreso. Hasta que esa ruta exista, no se navega a una pantalla
-ficticia: el guardado conserva o actualiza la ruta de edición y muestra un
-`Snackbar`; luego de un envío exitoso la vista queda inactiva, sin acciones de
-edición, e informa el resultado con el mismo mecanismo.
+**Guardar borrador** actualiza los metadatos y las palabras clave aplicables y
+conserva la ruta de edición, mostrando un `Snackbar` no bloqueante.
+**Enviar trabajo** persiste cambios pendientes y solicita el envío. Si tiene
+éxito, muestra la confirmación durante unos segundos y luego redirige a
+`/congresses/:congressCode/my-papers`.
 
 ### 5.3. Envío y solicitudes pendientes
 

@@ -343,6 +343,7 @@ export default function PaperDetailPage() {
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const inboxPath = `/congresses/${encodeURIComponent(congressCode)}/my-papers`;
   const routeNotice = location.state?.paperDetailNotice as
     DetailNotice | undefined;
   const canLoad = !!user && !!congressCode && !!paperCode;
@@ -396,7 +397,7 @@ export default function PaperDetailPage() {
       <Stack spacing={2} sx={{ width: "100%" }}>
         <Button
           component={RouterLink}
-          to="/congresses"
+          to={inboxPath}
           sx={{ alignSelf: "flex-start" }}
         >
           ← Volver a Mis trabajos
@@ -426,7 +427,7 @@ export default function PaperDetailPage() {
       <Stack spacing={2} sx={{ width: "100%" }}>
         <Button
           component={RouterLink}
-          to="/congresses"
+          to={inboxPath}
           sx={{ alignSelf: "flex-start" }}
         >
           ← Volver a Mis trabajos
@@ -495,7 +496,7 @@ export default function PaperDetailPage() {
         </Box>
         <Button
           component={RouterLink}
-          to="/congresses"
+          to={inboxPath}
           variant="outlined"
           sx={{ flexShrink: 0 }}
         >
