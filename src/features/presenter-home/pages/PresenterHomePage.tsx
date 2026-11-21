@@ -432,8 +432,8 @@ export default function PresenterHomePage() {
           Ciclo de vida del trabajo
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
-          Borrador → Enviado → En evaluación → Aprobado / Con observaciones /
-          Desaprobado
+          Borrador → Enviado → En evaluación → Aceptado / Con observaciones /
+          Rechazado
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
           En Borrador podés editar todo. Una vez enviado, el trabajo se bloquea.
