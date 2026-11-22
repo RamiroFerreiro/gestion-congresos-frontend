@@ -7,6 +7,7 @@ import type {
   AvailableCongress,
   CongressParticipation,
   CongressMessage,
+  MyCongressSummary,
 } from "../types/congress";
 
 class CongressService {
@@ -14,6 +15,10 @@ class CongressService {
     return api.get<AvailableCongress[]>("/api/congresses", {
       params: enabled !== undefined ? { enabled } : undefined,
     });
+  }
+
+  listMyCongresses(signal?: AbortSignal) {
+    return api.get<MyCongressSummary[]>("/api/congresses/mine", { signal });
   }
 
   getMyParticipation(congressCode: string, signal?: AbortSignal) {

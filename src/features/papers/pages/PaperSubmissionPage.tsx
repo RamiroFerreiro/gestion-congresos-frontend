@@ -451,7 +451,7 @@ function PaperSubmissionForm({
   const isCorrection = mode === "correction";
   const cancelPath = paper
     ? `/congresses/${encodeURIComponent(paper.congressCode)}/papers/${encodeURIComponent(paper.code)}`
-    : "/congresses";
+    : "/my-congresses";
 
   return (
     <Stack
@@ -751,7 +751,7 @@ export default function PaperSubmissionPage() {
       <Stack spacing={2}>
         <Button
           component={RouterLink}
-          to="/congresses"
+          to="/my-congresses"
           sx={{ alignSelf: "flex-start" }}
         >
           Volver a mis congresos
@@ -794,7 +794,7 @@ export default function PaperSubmissionPage() {
       <Stack spacing={2}>
         <Button
           component={RouterLink}
-          to="/congresses"
+          to="/my-congresses"
           sx={{ alignSelf: "flex-start" }}
         >
           Volver a mis congresos

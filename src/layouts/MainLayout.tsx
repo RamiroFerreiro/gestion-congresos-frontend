@@ -152,7 +152,7 @@ export default function MainLayout() {
       >
         <Typography
           component={RouterLink}
-          to="/congresses"
+          to="/my-congresses"
           variant="body2"
           sx={{
             fontFamily: "var(--font-mono)",

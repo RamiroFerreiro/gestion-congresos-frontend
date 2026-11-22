@@ -21,7 +21,7 @@ function LoginPage() {
   // Extraemos la función login de nuestro contexto
   const { login } = useAuth();
   const navigate = useNavigate();
-  
+
   // Estado local para manejar si mostramos un error de credenciales
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -41,13 +41,15 @@ function LoginPage() {
     setAuthError(null); // Limpiamos errores previos al reintentar
     try {
       await login(data);
-      
+
       // Si el backend responde OK y el Contexto guardó todo, redirigimos.
       // Modificá "/dashboard" por la ruta principal de tu app.
-      navigate("/congresses"); 
+      navigate("/my-congresses");
     } catch (error) {
       // Atrapamos el error y mostramos el mensaje al usuario
-      setAuthError("Las credenciales ingresadas no son correctas. Por favor, intentá nuevamente.");
+      setAuthError(
+        "Las credenciales ingresadas no son correctas. Por favor, intentá nuevamente.",
+      );
       console.error("Fallo al iniciar sesión:", error);
     }
   };

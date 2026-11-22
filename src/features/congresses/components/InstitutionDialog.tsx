@@ -19,8 +19,10 @@ import {
 import { getCongressError } from "../lib/congressErrors";
 import type { AvailableCongress } from "../types/congress";
 
+type InstitutionCongress = Pick<AvailableCongress, "code" | "name">;
+
 interface Props {
-  congress: AvailableCongress;
+  congress: InstitutionCongress;
   userId: number;
   editing: boolean;
   onClose: () => void;
@@ -51,6 +53,9 @@ export default function InstitutionDialog({
     onSuccess: (response) => {
       void queryClient.invalidateQueries({
         queryKey: ["congress-participation", userId, congress.code],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["my-congresses", userId],
       });
       onSuccess(response.data.message);
     },
