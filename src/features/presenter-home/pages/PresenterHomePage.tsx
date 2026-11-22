@@ -202,7 +202,7 @@ export default function PresenterHomePage() {
       <Stack spacing={2} sx={{ width: "100%" }}>
         <Button
           component={RouterLink}
-          to="/congresses"
+          to="/my-congresses"
           sx={{ alignSelf: "flex-start" }}
         >
           ← Cambiar congreso
@@ -270,7 +270,7 @@ export default function PresenterHomePage() {
         </Box>
         <Button
           component={RouterLink}
-          to="/congresses"
+          to="/my-congresses"
           variant="outlined"
           sx={{ flexShrink: 0 }}
         >

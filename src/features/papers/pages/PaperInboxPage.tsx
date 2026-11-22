@@ -320,7 +320,7 @@ export default function PaperInboxPage() {
       <Stack spacing={2} sx={{ width: "100%" }}>
         <Button
           component={RouterLink}
-          to="/congresses"
+          to="/my-congresses"
           sx={{ alignSelf: "flex-start" }}
         >
           ← Volver al inicio
@@ -391,7 +391,7 @@ export default function PaperInboxPage() {
         </Box>
         <Button
           component={RouterLink}
-          to="/congresses"
+          to="/my-congresses"
           variant="outlined"
           sx={{ flexShrink: 0 }}
         >

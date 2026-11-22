@@ -8,6 +8,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
+import { Link as RouterLink } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
 import CongressService from "../api/CongressService";
 import AvailableCongressCard from "../components/AvailableCongressCard";
@@ -30,6 +31,12 @@ export default function CongressesPage() {
         (congress) => congress.enabled,
       ),
     enabled: !!user,
+    retry: false,
+  });
+  const myCongresses = useQuery({
+    queryKey: ["my-congresses", user?.userId],
+    queryFn: ({ signal }) => CongressService.listMyCongresses(signal),
+    enabled: Boolean(user),
     retry: false,
   });
   useEffect(() => {
@@ -57,10 +64,10 @@ export default function CongressesPage() {
               mb: 0.5,
             }}
           >
-            Congresos disponibles
+            Explorar congresos
           </Typography>
           <Typography color="text.secondary">
-            Elegí el congreso al que querés ingresar o inscribirte.
+            Conocé los congresos habilitados e inscribite cuando corresponda.
           </Typography>
         </Box>
         <Box
@@ -82,6 +89,14 @@ export default function CongressesPage() {
           </Typography>
         </Box>
       </Box>
+      <Button
+        component={RouterLink}
+        to="/my-congresses"
+        variant="outlined"
+        sx={{ alignSelf: "flex-start", mb: 3 }}
+      >
+        ← Mis congresos
+      </Button>
       {success && (
         <Alert
           severity="success"
@@ -91,7 +106,7 @@ export default function CongressesPage() {
           {success}
         </Alert>
       )}
-      {congresses.isPending ? (
+      {congresses.isPending || myCongresses.isPending ? (
         <Box
           role="status"
           sx={{ display: "flex", alignItems: "center", gap: 2, py: 4 }}
@@ -99,16 +114,22 @@ export default function CongressesPage() {
           <CircularProgress size={24} />
           <Typography>Cargando congresos…</Typography>
         </Box>
-      ) : congresses.isError ? (
+      ) : congresses.isError || myCongresses.isError ? (
         <Alert
           severity="error"
           action={
-            <Button color="inherit" onClick={() => void congresses.refetch()}>
+            <Button
+              color="inherit"
+              onClick={() => {
+                void congresses.refetch();
+                void myCongresses.refetch();
+              }}
+            >
               Reintentar
             </Button>
           }
         >
-          {getCongressError(congresses.error)}
+          {getCongressError(congresses.error ?? myCongresses.error)}
         </Alert>
       ) : congresses.data.length === 0 ? (
         <Alert severity="info">
@@ -126,7 +147,9 @@ export default function CongressesPage() {
             <AvailableCongressCard
               key={congress.code}
               congress={congress}
-              userId={user.userId}
+              participation={myCongresses.data.data.find(
+                (participation) => participation.code === congress.code,
+              )}
               now={now}
               onInstitution={(selected, editing) => {
                 setSuccess(null);

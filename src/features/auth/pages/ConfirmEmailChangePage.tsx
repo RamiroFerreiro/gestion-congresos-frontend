@@ -1,4 +1,11 @@
-import { Box, Button, CircularProgress, Paper, Typography, Alert } from "@mui/material";
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Paper,
+  Typography,
+  Alert,
+} from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { isAxiosError } from "axios";
@@ -12,12 +19,7 @@ export default function ConfirmEmailChangePage() {
   // Detectamos si hay una sesión activa para decidir el destino del botón de acción
   const hasSession = !!localStorage.getItem("token");
 
-  const {
-    data,
-    isLoading,
-    isError,
-    error,
-  } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["confirm-email-change", token],
     queryFn: ({ signal }) => AuthService.confirmEmailChange(token!, signal),
     // Solo ejecutamos la petición si existe el token en la URL
@@ -135,7 +137,7 @@ export default function ConfirmEmailChangePage() {
             color="primary"
             fullWidth
             onClick={() =>
-              navigate(hasSession ? "/congresses" : "/auth/login", {
+              navigate(hasSession ? "/my-congresses" : "/auth/login", {
                 replace: true,
               })
             }

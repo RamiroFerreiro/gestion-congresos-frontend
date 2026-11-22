@@ -32,6 +32,23 @@ export interface AvailableCongress {
 export type ParticipantRole =
   "UNKNOWN" | "ADMINISTRATOR" | "EVALUATOR" | "EXPOSITOR" | "LISTENER";
 
+export type MyCongressRole =
+  Exclude<ParticipantRole, "UNKNOWN"> | "SUPER_ADMIN";
+
+/** Contrato de GET /api/congresses/mine. */
+export interface MyCongressSummary {
+  code: string;
+  name: string;
+  place: string;
+  enabled: boolean;
+  startDate: string;
+  endDate: string;
+  presentationStartDate: string;
+  presentationEndDate: string;
+  role: MyCongressRole;
+  institution: string | null;
+}
+
 export interface CongressParticipation {
   idCongressParticipant: number;
   user: {

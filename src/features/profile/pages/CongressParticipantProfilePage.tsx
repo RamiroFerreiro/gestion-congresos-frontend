@@ -69,7 +69,7 @@ export default function CongressParticipantProfilePage() {
       <Box sx={{ mb: 2 }}>
         <Button
           component={RouterLink}
-          to="/congresses"
+          to="/my-congresses"
           color="inherit"
           variant="text"
           sx={{
@@ -125,7 +125,7 @@ export default function CongressParticipantProfilePage() {
           action={
             <Button
               component={RouterLink}
-              to="/congresses"
+              to="/my-congresses"
               color="inherit"
               size="small"
             >
