@@ -7,6 +7,8 @@ import ForgotPasswordPage from "../features/auth/pages/ForgotPasswordPage";
 import ResetPasswordPage from "../features/auth/pages/ResetPasswordPage";
 import ConfirmEmailChangePage from "../features/auth/pages/ConfirmEmailChangePage";
 import ConfirmNewEmailPage from "../features/auth/pages/ConfirmNewEmailPage";
+import FirstLoginPage from "../features/auth/pages/FirstLoginPage";
+import { useAuth } from "../features/auth/context/AuthContext";
 import CongressesPage from "../features/congresses/pages/CongressesPage";
 import MyCongressesPage from "../features/congresses/pages/MyCongressesPage";
 import PaperDetailPage from "../features/papers/pages/PaperDetailPage";
@@ -17,6 +19,24 @@ import AdminPapersPage from "../features/papers/pages/AdminPapersPage";
 import UserProfilePage from "../features/profile/pages/UserProfilePage";
 import CongressParticipantProfilePage from "../features/profile/pages/CongressParticipantProfilePage";
 import PresenterHomePage from "../features/presenter-home/pages/PresenterHomePage";
+
+/**
+ * Guard para la ruta /first-login.
+ * Solo accesible para usuarios autenticados con mustChangePassword === true.
+ */
+function FirstLoginRoute() {
+  const { user } = useAuth();
+
+  if (!user || !localStorage.getItem("token")) {
+    return <Navigate to="/auth/login" replace />;
+  }
+
+  if (!user.mustChangePassword) {
+    return <Navigate to="/congresses" replace />;
+  }
+
+  return <FirstLoginPage />;
+}
 
 function AppRouter() {
   return (
@@ -42,6 +62,11 @@ function AppRouter() {
           de caché con el paso 1 (staleTime: Infinity sobre el mismo queryKey). */}
       <Route path="/confirm-new-email" element={<AuthLayout />}>
         <Route index element={<ConfirmNewEmailPage />} />
+      </Route>
+
+      {/* Ruta de onboarding / primer inicio de sesión */}
+      <Route path="/first-login" element={<AuthLayout />}>
+        <Route index element={<FirstLoginRoute />} />
       </Route>
 
       <Route element={<MainLayout />}>

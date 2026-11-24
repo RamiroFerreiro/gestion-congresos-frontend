@@ -1,15 +1,15 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 import { AuthService, type AuthResponse } from "../api/AuthService";
 import { type LoginFormData } from "../schemas/loginSchema";
-import { api } from "../../../lib/api";
 
 // Definimos qué información y funciones estarán disponibles para toda la app.
 interface AuthContextType {
   // Guardamos solo los datos del usuario, sin el token
   user: Omit<AuthResponse, "token"> | null;
   isAuthenticated: boolean;
-  login: (credentials: LoginFormData) => Promise<void>;
+  login: (credentials: LoginFormData) => Promise<Omit<AuthResponse, "token">>;
   logout: () => void;
+  markPasswordChanged: () => void;
 }
 
 // Creamos el contexto con un valor inicial nulo.
@@ -34,16 +34,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Guardamos el token en localStorage para que nuestro interceptor de Axios lo encuentre
       localStorage.setItem("token", token);
-      
+
       // Guardamos la info del usuario en localStorage para persistir tras recargar
       localStorage.setItem("user", JSON.stringify(userData));
 
       // Actualizamos el estado de React para que la app reaccione inmediatamente
       setUser(userData);
+      return userData;
     } catch (error) {
       console.error("Error durante el inicio de sesión:", error);
       throw error; // Lanzamos el error para que LoginPage lo atrape y muestre un mensaje
     }
+  };
+
+  const markPasswordChanged = () => {
+    setUser((prev) => {
+      if (!prev) return null;
+      const updated = { ...prev, mustChangePassword: false };
+      localStorage.setItem("user", JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const logout = () => {
@@ -59,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: !!user,
     login,
     logout,
+    markPasswordChanged,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -20,6 +20,10 @@ export default function MainLayout() {
     );
   }
 
+  if (user.mustChangePassword) {
+    return <Navigate to="/first-login" replace />;
+  }
+
   return (
     <Box
       sx={{
