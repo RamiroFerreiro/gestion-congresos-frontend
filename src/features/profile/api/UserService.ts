@@ -7,6 +7,10 @@ import type {
   ChangeEmailRequest,
   ChangeEmailResponse,
 } from "../types/changeEmail";
+import type {
+  ChangePasswordRequest,
+  ChangePasswordResponse,
+} from "../types/changePassword";
 
 export const UserService = {
   /**
@@ -43,6 +47,19 @@ export const UserService = {
   ): Promise<ChangeEmailResponse> => {
     const response = await api.patch<ChangeEmailResponse>(
       "/api/users/change-email",
+      payload,
+    );
+    return response.data;
+  },
+
+  /**
+   * Cambia voluntariamente la contraseña del usuario actualmente autenticado.
+   */
+  changePassword: async (
+    payload: ChangePasswordRequest,
+  ): Promise<ChangePasswordResponse> => {
+    const response = await api.patch<ChangePasswordResponse>(
+      "/api/users/change-password",
       payload,
     );
     return response.data;
