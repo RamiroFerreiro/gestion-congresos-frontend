@@ -22,6 +22,9 @@ import {
   Typography,
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import CoauthorshipRequestsDialog from "../components/CoauthorshipRequestsDialog";
+import { canManageCoauthorship } from "../lib/coauthorship";
 import { isAxiosError } from "axios";
 import {
   Link as RouterLink,
@@ -241,6 +244,7 @@ function CreatePaperButton({
 export default function PaperInboxPage() {
   const { congressCode = "" } = useParams();
   const { user } = useAuth();
+  const [requestsPaper, setRequestsPaper] = useState<ParticipantPaperSummary | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const statusParam = searchParams.get("status");
   const status = isPaperStatus(statusParam) ? statusParam : undefined;
@@ -400,6 +404,9 @@ export default function PaperInboxPage() {
       </Box>
 
       <Paper variant="outlined" sx={{ borderRadius: 2, p: 2.75 }}>
+        <Button component={RouterLink} to={`/congresses/${encodeURIComponent(congressCode)}/coauthorship`} variant="outlined" sx={{ mb: 2, display: "block", width: "fit-content" }}>
+          Buscar trabajo para unirme
+        </Button>
         <FormControl sx={{ minWidth: 340 }} size="small">
           <InputLabel id="paper-status-filter-label">
             Filtrar por estado
@@ -495,6 +502,7 @@ export default function PaperInboxPage() {
                           </Typography>
                         </TableCell>
                         <TableCell align="right">
+                          {canManageCoauthorship(paper) && <Button size="small" variant="outlined" sx={{ mr: 1 }} onClick={() => setRequestsPaper(paper)}>Solicitudes</Button>}
                           <Button
                             component={RouterLink}
                             to={action.to}
@@ -572,6 +580,7 @@ export default function PaperInboxPage() {
           </Box>
         )}
       </Paper>
+      {requestsPaper && <CoauthorshipRequestsDialog key={`${congressCode}:${requestsPaper.code}`} congressCode={congressCode} paperCode={requestsPaper.code} title={requestsPaper.title} onClose={() => setRequestsPaper(null)} />}
     </Stack>
   );
 }
