@@ -13,6 +13,7 @@ import CongressesPage from "../features/congresses/pages/CongressesPage";
 import MyCongressesPage from "../features/congresses/pages/MyCongressesPage";
 import PaperDetailPage from "../features/papers/pages/PaperDetailPage";
 import PaperInboxPage from "../features/papers/pages/PaperInboxPage";
+import CoauthorshipCatalogPage from "../features/papers/pages/CoauthorshipCatalogPage";
 import PaperSubmissionPage from "../features/papers/pages/PaperSubmissionPage";
 import PaymentsPage from "../features/payments/pages/PaymentsPage";
 import AdminPapersPage from "../features/papers/pages/AdminPapersPage";
@@ -70,6 +71,7 @@ function AppRouter() {
       </Route>
 
       <Route element={<MainLayout />}>
+        <Route path="/congresses/:congressCode/coauthorship" element={<CoauthorshipCatalogPage />} />
         <Route
           path="/congresses/:congressCode/payments"
           element={<PaymentsPage />}

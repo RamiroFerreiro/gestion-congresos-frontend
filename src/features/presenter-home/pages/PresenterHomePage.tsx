@@ -415,6 +415,7 @@ export default function PresenterHomePage() {
         >
           Ver bandeja de trabajos →
         </Button>
+        <Button component={RouterLink} to={`/congresses/${encodeURIComponent(congressCode)}/coauthorship`} variant="outlined">Buscar trabajo para unirme</Button>
       </Box>
 
       {(participation.isError || congressRules.isError) && (
