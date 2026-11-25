@@ -15,6 +15,7 @@ import { isAxiosError } from "axios";
 
 import PasswordField from "../components/PasswordField";
 import RegisterField from "../components/RegisterField";
+import CountrySelect from "../../../components/CountrySelect";
 import { AuthService } from "../api/AuthService";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -223,12 +224,14 @@ export default function FirstLoginPage() {
             name="country"
             control={control}
             render={({ field, fieldState }) => (
-              <RegisterField
+              <CountrySelect
                 id="country"
-                label="País de residencia *"
-                placeholder="Ej. Argentina"
-                type="text"
-                {...field}
+                name={field.name}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                inputRef={field.ref}
+                disabled={isSubmitting || !!successMessage}
                 error={!!fieldState.error}
                 helperText={fieldState.error?.message}
               />
