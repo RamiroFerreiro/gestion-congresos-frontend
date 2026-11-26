@@ -107,10 +107,14 @@ export default function MyCongressCard({
       {status.finished ? "Ingresar al congreso →" : "Continuar →"}
     </Button>
   ) : congress.role === "EVALUATOR" ? (
-    <DisabledAction
-      label="Espacio de evaluación próximo"
-      message="La vista de trabajo del evaluador todavía no está implementada."
-    />
+    <Button
+      component={RouterLink}
+      to={`/congresses/${encodeURIComponent(congress.code)}/reviewer-inbox`}
+      fullWidth
+      variant={status.finished ? "outlined" : "contained"}
+    >
+      Ver bandeja de trabajos
+    </Button>
   ) : (
     <Button
       component={RouterLink}

@@ -21,6 +21,7 @@ import PaymentsPage from "../features/payments/pages/PaymentsPage";
 import AdminPapersPage from "../features/papers/pages/AdminPapersPage";
 import UserProfilePage from "../features/profile/pages/UserProfilePage";
 import CongressParticipantProfilePage from "../features/profile/pages/CongressParticipantProfilePage";
+import ReviewerInboxPage from "../features/evaluator/pages/ReviewerInboxPage";
 import PresenterHomePage from "../features/presenter-home/pages/PresenterHomePage";
 
 /**
@@ -74,6 +75,10 @@ function AppRouter() {
 
       <Route element={<MainLayout />}>
         <Route path="/congresses/:congressCode/coauthorship" element={<CoauthorshipCatalogPage />} />
+        <Route
+          path="/congresses/:congressCode/reviewer-inbox"
+          element={<ReviewerInboxPage />}
+        />
         <Route
           path="/congresses/:congressCode/payments"
           element={<PaymentsPage />}

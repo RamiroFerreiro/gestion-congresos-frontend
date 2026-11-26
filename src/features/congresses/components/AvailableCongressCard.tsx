@@ -60,6 +60,15 @@ export default function AvailableCongressCard({
         >
           Completar institución
         </Button>
+      ) : participation.role === "EVALUATOR" ? (
+        <Button
+          component={RouterLink}
+          to={`/congresses/${encodeURIComponent(congress.code)}/reviewer-inbox`}
+          fullWidth
+          variant="contained"
+        >
+          Ver bandeja de trabajos
+        </Button>
       ) : canEnterParticipantHome ? (
         <Box sx={{ display: "grid", gap: 1 }}>
           <Button
