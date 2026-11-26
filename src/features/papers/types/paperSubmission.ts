@@ -39,6 +39,16 @@ export interface PaperDetail {
   authors: PaperAuthor[];
 }
 
+export interface PaperEvaluation {
+  feedback: string;
+  evaluationDate: string;
+  evaluatedVersion: string;
+  newDeadline: string | null;
+  newStatus: PaperStatus;
+  evaluatorCode: string | null;
+  evaluatorFullName: string | null;
+}
+
 export interface PaperCongressRules {
   congressId: number;
   code: string;

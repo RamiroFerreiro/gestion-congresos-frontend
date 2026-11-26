@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   Link as RouterLink,
@@ -33,10 +33,15 @@ import {
   createPaperSubmissionSchema,
   parseKeywords,
 } from "../schemas/paperSubmissionSchema";
+import {
+  getSubmissionAvailability,
+  type SubmissionAvailability,
+} from "../utils/submissionAvailability";
 import type {
   CreatePaperRequest,
   PaperCongressRules,
   PaperDetail,
+  PaperEvaluation,
   PaperSubmissionFormValues,
   UpdatePaperRequest,
 } from "../types/paperSubmission";
@@ -46,10 +51,7 @@ type SubmissionNotice = {
   severity: "success" | "error";
 };
 
-type SubmissionAvailability = {
-  isOpen: boolean;
-  message: string | null;
-};
+type SubmissionMode = "submission" | "correction";
 
 function getLoadError(error: unknown) {
   if (isAxiosError(error)) {
@@ -64,7 +66,7 @@ function getLoadError(error: unknown) {
     }
   }
 
-  return "No se pudo cargar la información necesaria para crear el trabajo.";
+  return "No se pudo cargar la información necesaria para operar el trabajo.";
 }
 
 function getMutationError(error: unknown) {
@@ -86,48 +88,52 @@ function normalizeKeyword(keyword: string) {
   return keyword.trim().toLocaleLowerCase("es-AR");
 }
 
-function getSubmissionAvailability(
+function getCorrectionAvailability(
   congress: PaperCongressRules,
+  evaluation: PaperEvaluation | undefined,
   now = new Date(),
 ): SubmissionAvailability {
   if (!congress.enabled) {
     return {
       isOpen: false,
-      message:
-        "El congreso se encuentra deshabilitado para la presentación de trabajos.",
+      message: "El congreso se encuentra deshabilitado para corregir trabajos.",
     };
   }
 
-  const start = new Date(congress.presentationStartDate);
-  const end = new Date(congress.presentationEndDate);
-  if (
-    Number.isNaN(start.getTime()) ||
-    Number.isNaN(end.getTime()) ||
-    start > end
-  ) {
+  if (!evaluation || !evaluation.newDeadline) {
     return {
       isOpen: false,
       message:
-        "El período de presentación del congreso no tiene fechas válidas.",
+        "No hay una evaluación liberada con fecha límite disponible para esta corrección.",
     };
   }
 
-  if (now < start) {
+  const deadline = new Date(evaluation.newDeadline);
+  if (Number.isNaN(deadline.getTime())) {
     return {
       isOpen: false,
-      message:
-        "La presentación de trabajos todavía no se encuentra habilitada.",
+      message: "La fecha límite de corrección no es válida.",
     };
   }
 
-  if (now > end) {
+  if (now > deadline) {
     return {
       isOpen: false,
-      message: "El período de presentación de trabajos ya finalizó.",
+      message: "La fecha límite para reenviar la corrección ya venció.",
     };
   }
 
   return { isOpen: true, message: null };
+}
+
+function formatDateTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Fecha no disponible";
+
+  return new Intl.DateTimeFormat("es-AR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }
 
 interface PaperSubmissionFormProps {
@@ -137,6 +143,8 @@ interface PaperSubmissionFormProps {
     institution: string | null;
   };
   paper?: PaperDetail;
+  mode: SubmissionMode;
+  correctionEvaluation?: PaperEvaluation;
   canSave: boolean;
   canSubmit: boolean;
   canRemoveAuthors: boolean;
@@ -222,6 +230,8 @@ function PaperAuthors({
   responsibleAuthor,
   paper,
   canRemoveAuthors,
+  showAuthorActions,
+  readOnly,
   isBusy,
   onRemoveAuthor,
 }: {
@@ -229,6 +239,8 @@ function PaperAuthors({
   responsibleAuthor: PaperSubmissionFormProps["responsibleAuthor"];
   paper?: PaperDetail;
   canRemoveAuthors: boolean;
+  showAuthorActions: boolean;
+  readOnly: boolean;
   isBusy: boolean;
   onRemoveAuthor: (authorUserCode: string) => Promise<void>;
 }) {
@@ -273,9 +285,11 @@ function PaperAuthors({
         </Box>
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
-        {paper
-          ? "Se muestran los autores aceptados. Los coautores se incorporan mediante solicitudes externas al trabajo."
-          : "Al crear el borrador, figurás como autor responsable. Los demás autores podrán solicitar incorporarse al trabajo y deberás aceptar su solicitud."}
+        {readOnly
+          ? "Los autores aceptados se conservan sin cambios durante la corrección del trabajo."
+          : paper
+            ? "Se muestran los autores aceptados. Los coautores se incorporan mediante solicitudes externas al trabajo."
+            : "Al crear el borrador, figurás como autor responsable. Los demás autores podrán solicitar incorporarse al trabajo y deberás aceptar su solicitud."}
       </Typography>
       <Stack spacing={1.5} sx={{ mt: 2.25 }}>
         {authors.map((author) => (
@@ -283,7 +297,9 @@ function PaperAuthors({
             key={author.userCode}
             sx={{
               display: "grid",
-              gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr) auto",
+              gridTemplateColumns: showAuthorActions
+                ? "minmax(0, 1fr) minmax(0, 1fr) auto"
+                : "minmax(0, 1fr) minmax(0, 1fr)",
               gap: 2,
               alignItems: "center",
             }}
@@ -300,7 +316,7 @@ function PaperAuthors({
               fullWidth
               slotProps={{ input: { readOnly: true } }}
             />
-            {!author.mainAuthor && paper && (
+            {!author.mainAuthor && paper && showAuthorActions && (
               <Button
                 aria-label={`Quitar a ${author.fullName} del trabajo`}
                 color="error"
@@ -311,7 +327,7 @@ function PaperAuthors({
                 ×
               </Button>
             )}
-            {(author.mainAuthor || !paper) && (
+            {author.mainAuthor && showAuthorActions && (
               <Box aria-hidden="true" sx={{ width: 40 }} />
             )}
           </Box>
@@ -321,10 +337,64 @@ function PaperAuthors({
   );
 }
 
+function CorrectionReview({ evaluation }: { evaluation: PaperEvaluation }) {
+  return (
+    <Paper
+      variant="outlined"
+      sx={{
+        borderColor: "#B78422",
+        borderLeft: 3,
+        borderRadius: 1.5,
+        p: 2.75,
+      }}
+    >
+      <Typography
+        component="h2"
+        sx={{
+          fontFamily: "var(--font-serif)",
+          fontSize: "1.2rem",
+          fontWeight: 600,
+        }}
+      >
+        Observación a corregir
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
+        Evaluación de la versión {evaluation.evaluatedVersion} ·{" "}
+        {formatDateTime(evaluation.evaluationDate)}
+        {evaluation.evaluatorFullName
+          ? ` · ${evaluation.evaluatorFullName}`
+          : ""}
+      </Typography>
+      <Box
+        sx={{
+          bgcolor: "#F3EFEE",
+          border: 1,
+          borderColor: "divider",
+          borderRadius: 1.5,
+          mt: 1.75,
+          px: 2,
+          py: 1.5,
+        }}
+      >
+        <Typography sx={{ whiteSpace: "pre-wrap", lineHeight: 1.65 }}>
+          {evaluation.feedback}
+        </Typography>
+      </Box>
+      {evaluation.newDeadline && (
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1.25 }}>
+          Fecha límite para corregir: {formatDateTime(evaluation.newDeadline)}
+        </Typography>
+      )}
+    </Paper>
+  );
+}
+
 function PaperSubmissionForm({
   congress,
   responsibleAuthor,
   paper,
+  mode,
+  correctionEvaluation,
   canSave,
   canSubmit,
   canRemoveAuthors,
@@ -378,6 +448,10 @@ function PaperSubmissionForm({
     await onSubmitPaper(values);
   };
   const isBusy = isSaving || isRemovingAuthor;
+  const isCorrection = mode === "correction";
+  const cancelPath = paper
+    ? `/congresses/${encodeURIComponent(paper.congressCode)}/papers/${encodeURIComponent(paper.code)}`
+    : "/my-congresses";
 
   return (
     <Stack
@@ -406,12 +480,20 @@ function PaperSubmissionForm({
             fontWeight: 600,
           }}
         >
-          Envío de trabajo científico
+          {isCorrection
+            ? "Corrección del trabajo"
+            : "Envío de trabajo científico"}
         </Typography>
         <Typography color="text.secondary" sx={{ mt: 0.75 }}>
-          Completá la información que será evaluada por el congreso.
+          {isCorrection
+            ? "Actualizá la versión solicitada antes de la fecha límite de corrección."
+            : "Completá la información que será evaluada por el congreso."}
         </Typography>
       </Box>
+
+      {isCorrection && correctionEvaluation && (
+        <CorrectionReview evaluation={correctionEvaluation} />
+      )}
 
       <CongressRequirements congress={congress} />
 
@@ -443,22 +525,28 @@ function PaperSubmissionForm({
               gap: 2,
             }}
           >
-            <TextField
-              {...form.register("thematicArea")}
-              select
-              label="Área temática"
-              required
-              fullWidth
-              disabled={!canSave || isBusy}
-              error={!!form.formState.errors.thematicArea}
-              helperText={form.formState.errors.thematicArea?.message}
-            >
-              {congress.thematicAreas.map((area) => (
-                <MenuItem key={area} value={area}>
-                  {area}
-                </MenuItem>
-              ))}
-            </TextField>
+            <Controller
+              control={form.control}
+              name="thematicArea"
+              render={({ field, fieldState }) => (
+                <TextField
+                  {...field}
+                  select
+                  label="Área temática"
+                  required
+                  fullWidth
+                  disabled={!canSave || isBusy}
+                  error={!!fieldState.error}
+                  helperText={fieldState.error?.message}
+                >
+                  {congress.thematicAreas.map((area) => (
+                    <MenuItem key={area} value={area}>
+                      {area}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              )}
+            />
             <TextField
               {...form.register("keywords")}
               label="Palabras clave"
@@ -480,6 +568,8 @@ function PaperSubmissionForm({
         responsibleAuthor={responsibleAuthor}
         paper={paper}
         canRemoveAuthors={canRemoveAuthors}
+        showAuthorActions={!!paper && !isCorrection}
+        readOnly={isCorrection}
         isBusy={isBusy}
         onRemoveAuthor={onRemoveAuthor}
       />
@@ -521,16 +611,16 @@ function PaperSubmissionForm({
           disabled={!canSubmit || isBusy}
           onClick={() => void form.handleSubmit(handleSubmitPaper)()}
         >
-          Enviar trabajo
+          {isCorrection ? "Reenviar versión corregida" : "Enviar trabajo"}
         </Button>
         <Button
           variant="outlined"
           disabled={!canSave || isBusy}
           onClick={() => void form.handleSubmit(onSave)()}
         >
-          Guardar borrador
+          {isCorrection ? "Guardar cambios" : "Guardar borrador"}
         </Button>
-        <Button component={RouterLink} to="/congresses" color="inherit">
+        <Button component={RouterLink} to={cancelPath} color="inherit">
           Cancelar
         </Button>
       </Box>
@@ -543,8 +633,12 @@ export default function PaperSubmissionPage() {
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const isCorrection = !!paperCode && location.pathname.endsWith("/correction");
   const queryClient = useQueryClient();
   const [notice, setNotice] = useState<SubmissionNotice | null>(null);
+  const [isRedirectingAfterSubmission, setIsRedirectingAfterSubmission] =
+    useState(false);
+  const submissionRedirectTimeout = useRef<number | null>(null);
   const [pendingSubmissionCode, setPendingSubmissionCode] = useState<
     string | null
   >(null);
@@ -565,6 +659,18 @@ export default function PaperSubmissionPage() {
     queryFn: ({ signal }) =>
       PaperSubmissionService.getPaper(paperCode!, signal),
     enabled: !!user && !!paperCode,
+    retry: false,
+  });
+  const correctionEvaluations = useQuery({
+    queryKey: ["paper-correction-evaluations", user?.userId, paperCode],
+    queryFn: ({ signal }) =>
+      PaperSubmissionService.getEvaluations(paperCode!, signal),
+    enabled:
+      !!user &&
+      !!paperCode &&
+      isCorrection &&
+      paper.isSuccess &&
+      paper.data?.congressCode === congressCode,
     retry: false,
   });
   const participation = useQuery({
@@ -607,12 +713,22 @@ export default function PaperSubmissionPage() {
       PaperSubmissionService.submitPaper(code, confirmDiscardPendingRequests),
   });
 
+  useEffect(
+    () => () => {
+      if (submissionRedirectTimeout.current !== null) {
+        window.clearTimeout(submissionRedirectTimeout.current);
+      }
+    },
+    [],
+  );
+
   if (!user) return null;
 
   if (
     congress.isPending ||
     participation.isPending ||
-    (!!paperCode && paper.isPending)
+    (!!paperCode && paper.isPending) ||
+    (isCorrection && correctionEvaluations.isPending)
   ) {
     return (
       <Box
@@ -628,13 +744,14 @@ export default function PaperSubmissionPage() {
   if (
     congress.isError ||
     participation.isError ||
-    (!!paperCode && paper.isError)
+    (!!paperCode && paper.isError) ||
+    (isCorrection && correctionEvaluations.isError)
   ) {
     return (
       <Stack spacing={2}>
         <Button
           component={RouterLink}
-          to="/congresses"
+          to="/my-congresses"
           sx={{ alignSelf: "flex-start" }}
         >
           Volver a mis congresos
@@ -648,13 +765,19 @@ export default function PaperSubmissionPage() {
                 void congress.refetch();
                 void participation.refetch();
                 void paper.refetch();
+                void correctionEvaluations.refetch();
               }}
             >
               Reintentar
             </Button>
           }
         >
-          {getLoadError(congress.error ?? participation.error ?? paper.error)}
+          {getLoadError(
+            congress.error ??
+              participation.error ??
+              paper.error ??
+              correctionEvaluations.error,
+          )}
         </Alert>
       </Stack>
     );
@@ -671,7 +794,7 @@ export default function PaperSubmissionPage() {
       <Stack spacing={2}>
         <Button
           component={RouterLink}
-          to="/congresses"
+          to="/my-congresses"
           sx={{ alignSelf: "flex-start" }}
         >
           Volver a mis congresos
@@ -698,9 +821,18 @@ export default function PaperSubmissionPage() {
       (author) =>
         author.mainAuthor && author.userCode === participant.user.code,
     );
+  const latestCorrectionEvaluation = correctionEvaluations.data?.find(
+    (evaluation) => evaluation.newStatus === "NEEDS_REVISION",
+  );
   const canEditPaper =
-    !paper.data || (paper.data.status === "NOT_SUBMITTED" && isResponsible);
-  const submissionAvailability = getSubmissionAvailability(congress.data);
+    (!isCorrection && !paper.data) ||
+    (!isCorrection &&
+      paper.data?.status === "NOT_SUBMITTED" &&
+      isResponsible) ||
+    (isCorrection && paper.data?.status === "NEEDS_REVISION" && isResponsible);
+  const submissionAvailability = isCorrection
+    ? getCorrectionAvailability(congress.data, latestCorrectionEvaluation)
+    : getSubmissionAvailability(congress.data);
   const acceptedAuthorCount = paper.data
     ? paper.data.authors.filter((author) => author.status === "ACCEPTED").length
     : 1;
@@ -708,17 +840,21 @@ export default function PaperSubmissionPage() {
     acceptedAuthorCount > congress.data.maxNumberOfAuthors;
   const canSave = canEditPaper && submissionAvailability.isOpen;
   const canSubmit = canSave && !exceedsAuthorLimit;
-  const canRemoveAuthors = canSave;
+  const canRemoveAuthors = canSave && !isCorrection;
   const isBusy =
     createPaper.isPending ||
     updatePaper.isPending ||
     removeAuthor.isPending ||
-    submitPaper.isPending;
+    submitPaper.isPending ||
+    isRedirectingAfterSubmission;
   const displayedNotice = notice ?? routeNotice;
   const displayedPendingSubmissionCode =
     pendingSubmissionCode ?? routePendingSubmissionCode;
   const editPath = (newPaperCode: string) =>
     `/congresses/${encodeURIComponent(congressCode)}/papers/${encodeURIComponent(newPaperCode)}/edit`;
+  const detailPath = (currentPaperCode: string) =>
+    `/congresses/${encodeURIComponent(congressCode)}/papers/${encodeURIComponent(currentPaperCode)}`;
+  const inboxPath = `/congresses/${encodeURIComponent(congressCode)}/my-papers`;
   const refreshPaper = async () => {
     await queryClient.invalidateQueries({ queryKey: paperQueryKey });
     await paper.refetch();
@@ -760,6 +896,24 @@ export default function PaperSubmissionPage() {
       state: { paperSubmissionNotice: nextNotice },
     });
   };
+  const redirectToInboxAfterSubmission = () => {
+    setNotice({
+      message: "El trabajo se envió a evaluación correctamente.",
+      severity: "success",
+    });
+    setIsRedirectingAfterSubmission(true);
+    void queryClient.invalidateQueries({
+      queryKey: ["participant-paper-inbox", user.userId, congressCode],
+    });
+
+    if (submissionRedirectTimeout.current !== null) {
+      window.clearTimeout(submissionRedirectTimeout.current);
+    }
+
+    submissionRedirectTimeout.current = window.setTimeout(() => {
+      navigate(inboxPath, { replace: true });
+    }, 3500);
+  };
   const persistExistingDraft = async (values: PaperSubmissionFormValues) => {
     if (!paper.data) return;
 
@@ -799,32 +953,16 @@ export default function PaperSubmissionPage() {
       await refreshPaper();
     }
   };
-  const completeSubmission = async (
-    code: string,
-    createdPaper?: PaperDetail,
-  ) => {
+  const completeSubmission = async (code: string) => {
     await submitPaper.mutateAsync({ paperCode: code });
-
-    if (createdPaper) {
-      moveToCreatedPaper(createdPaper, {
-        message: "El trabajo se envió a evaluación correctamente.",
-        severity: "success",
-      });
-      return;
-    }
-
-    await refreshPaper();
-    setNotice({
-      message: "El trabajo se envió a evaluación correctamente.",
-      severity: "success",
-    });
+    redirectToInboxAfterSubmission();
   };
   const requestSubmission = async (
     code: string,
     createdPaper?: PaperDetail,
   ) => {
     try {
-      await completeSubmission(code, createdPaper);
+      await completeSubmission(code);
     } catch (error) {
       if (hasPendingAuthorRequests(error)) {
         if (createdPaper) {
@@ -845,7 +983,9 @@ export default function PaperSubmissionPage() {
       if (paper.data) {
         await persistExistingDraft(values);
         setNotice({
-          message: "El borrador se actualizó correctamente.",
+          message: isCorrection
+            ? "Los cambios de la corrección se guardaron correctamente."
+            : "El borrador se actualizó correctamente.",
           severity: "success",
         });
         return;
@@ -866,6 +1006,20 @@ export default function PaperSubmissionPage() {
     try {
       if (paper.data) {
         await persistExistingDraft(values);
+        if (isCorrection) {
+          await submitPaper.mutateAsync({ paperCode: paper.data.code });
+          navigate(detailPath(paper.data.code), {
+            replace: true,
+            state: {
+              paperDetailNotice: {
+                message:
+                  "La versión corregida se envió a evaluación correctamente.",
+                severity: "success",
+              },
+            },
+          });
+          return;
+        }
         await requestSubmission(paper.data.code);
         return;
       }
@@ -905,26 +1059,8 @@ export default function PaperSubmissionPage() {
         confirmDiscardPendingRequests: true,
       });
       setPendingSubmissionCode(null);
-
-      if (paperCode === displayedPendingSubmissionCode) {
-        clearRoutePendingSubmission();
-        await refreshPaper();
-        setNotice({
-          message: "El trabajo se envió a evaluación correctamente.",
-          severity: "success",
-        });
-        return;
-      }
-
-      navigate(editPath(displayedPendingSubmissionCode), {
-        replace: true,
-        state: {
-          paperSubmissionNotice: {
-            message: "El trabajo se envió a evaluación correctamente.",
-            severity: "success",
-          },
-        },
-      });
+      clearRoutePendingSubmission();
+      redirectToInboxAfterSubmission();
     } catch (error) {
       setNotice({ message: getMutationError(error), severity: "error" });
     }
@@ -950,9 +1086,13 @@ export default function PaperSubmissionPage() {
           }
           sx={{ mb: 3 }}
         >
-          {paper.data.status === "UNDER_EVALUATION"
-            ? "Este trabajo ya fue enviado a evaluación y no admite cambios."
-            : "Sólo el autor responsable puede editar este borrador."}
+          {isCorrection
+            ? paper.data.status !== "NEEDS_REVISION"
+              ? "Este trabajo no se encuentra disponible para corrección."
+              : "Sólo el autor responsable puede corregir y reenviar este trabajo."
+            : paper.data.status === "UNDER_EVALUATION"
+              ? "Este trabajo ya fue enviado a evaluación y no admite cambios."
+              : "Sólo el autor responsable puede editar este borrador."}
         </Alert>
       )}
       <PaperSubmissionForm
@@ -962,6 +1102,8 @@ export default function PaperSubmissionPage() {
           institution: participant.institution,
         }}
         paper={paper.data}
+        mode={isCorrection ? "correction" : "submission"}
+        correctionEvaluation={latestCorrectionEvaluation}
         canSave={canSave}
         canSubmit={canSubmit}
         canRemoveAuthors={canRemoveAuthors}
@@ -972,7 +1114,7 @@ export default function PaperSubmissionPage() {
         onRemoveAuthor={handleRemoveAuthor}
       />
       <Dialog
-        open={!!displayedPendingSubmissionCode}
+        open={!isCorrection && !!displayedPendingSubmissionCode}
         onClose={isBusy ? undefined : closePendingSubmissionDialog}
       >
         <DialogTitle>Solicitudes de coautoría pendientes</DialogTitle>

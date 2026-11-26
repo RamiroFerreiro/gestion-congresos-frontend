@@ -63,7 +63,7 @@ export default function PaymentsPage() {
       <Stack spacing={2}>
         <Button
           component={RouterLink}
-          to="/congresses"
+          to="/my-congresses"
           sx={{ alignSelf: "flex-start" }}
         >
           Volver a mis congresos
@@ -96,7 +96,7 @@ export default function PaymentsPage() {
       <Box>
         <Button
           component={RouterLink}
-          to={paperCode ? basePath : "/congresses"}
+          to={paperCode ? basePath : "/my-congresses"}
           sx={{ mb: 2 }}
         >
           {paperCode ? "Volver a pagos" : "Volver a mis congresos"}

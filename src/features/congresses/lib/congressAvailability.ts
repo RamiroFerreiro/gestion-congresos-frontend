@@ -1,5 +1,33 @@
 import type { AvailableCongress } from "../types/congress";
 
+type CongressSchedule = Pick<
+  AvailableCongress,
+  | "enabled"
+  | "startDate"
+  | "endDate"
+  | "presentationStartDate"
+  | "presentationEndDate"
+>;
+
+export function getCongressStatus(congress: CongressSchedule, now: Date) {
+  const congressEnd = new Date(congress.endDate).getTime();
+  const submissionStart = new Date(congress.presentationStartDate).getTime();
+  const submissionEnd = new Date(congress.presentationEndDate).getTime();
+  const time = now.getTime();
+  const finished = time > congressEnd;
+  const disabled = !congress.enabled;
+
+  // /mine no incluye fechas de inscripción; este estado describe el congreso.
+  let label = "Activo";
+  if (disabled) label = "Deshabilitado";
+  else if (finished) label = "Finalizado";
+  else if (time >= submissionStart && time <= submissionEnd)
+    label = "Recepción abierta";
+  else if (time >= new Date(congress.startDate).getTime()) label = "En curso";
+
+  return { label, finished, disabled };
+}
+
 export function getCongressAvailability(
   congress: AvailableCongress,
   now: Date,
@@ -8,24 +36,20 @@ export function getCongressAvailability(
   // igual que los formularios existentes; el servidor vuelve a validar al enviar.
   const registrationStart = new Date(congress.registrationStartDate).getTime();
   const registrationEnd = new Date(congress.registrationEndDate).getTime();
-  const congressEnd = new Date(congress.endDate).getTime();
-  const submissionStart = new Date(congress.presentationStartDate).getTime();
-  const submissionEnd = new Date(congress.presentationEndDate).getTime();
   const time = now.getTime();
-  const finished = time > congressEnd;
+  const status = getCongressStatus(congress, now);
   const canRegister =
     congress.enabled &&
-    !finished &&
+    !status.finished &&
     time >= registrationStart &&
     time <= registrationEnd;
 
-  let label = "Inscripción cerrada";
-  if (finished) label = "Finalizado";
-  else if (time < registrationStart) label = "Inscripción próximamente";
-  else if (time >= submissionStart && time <= submissionEnd)
-    label = "Recepción abierta";
-  else if (canRegister) label = "Inscripción abierta";
-  else if (time >= new Date(congress.startDate).getTime()) label = "En curso";
+  let label = status.label === "Activo" ? "Inscripción cerrada" : status.label;
+  if (!status.disabled && !status.finished && time < registrationStart) {
+    label = "Inscripción próximamente";
+  } else if (!status.disabled && !status.finished && canRegister) {
+    label = "Inscripción abierta";
+  }
 
-  return { canRegister, label, finished };
+  return { canRegister, label, finished: status.finished };
 }

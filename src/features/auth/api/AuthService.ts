@@ -3,6 +3,10 @@ import { ForgotPasswordFormData } from "../schemas/forgotPasswordSchema";
 import type { LoginFormData } from "../schemas/loginSchema";
 import type { RegisterFormData } from "../schemas/registerSchema";
 import { ResetPasswordFormData } from "../schemas/resetPasswordSchema";
+import type {
+  FirstLoginRequest,
+  FirstLoginResponse,
+} from "../types/firstLogin";
 
 export interface AuthResponse {
   userId: number;
@@ -41,6 +45,39 @@ export const AuthService = {
   },
 
   /**
+   * Paso 1 del flujo de doble confirmación.
+   * El usuario hace clic en el enlace enviado a su correo ACTUAL.
+   * El backend verifica la identidad y envía un segundo enlace al nuevo correo.
+   * Ruta pública: /confirm-email-change
+   */
+  confirmEmailChange: async (
+    token: string,
+    signal?: AbortSignal,
+  ): Promise<{ message: string }> => {
+    const response = await api.get<{ message: string }>(
+      `/api/auth/confirm-email-change?token=${encodeURIComponent(token)}`,
+      { signal },
+    );
+    return response.data;
+  },
+
+  /**
+   * Paso 2 del flujo de doble confirmación.
+   * El usuario hace clic en el enlace enviado a su NUEVO correo (/confirm-new-email).
+   * Llama al mismo endpoint unificado del backend enviando el token recibido.
+   */
+  confirmNewEmail: async (
+    token: string,
+    signal?: AbortSignal,
+  ): Promise<{ message: string }> => {
+    const response = await api.get<{ message: string }>(
+      `/api/auth/confirm-email-change?token=${encodeURIComponent(token)}`,
+      { signal },
+    );
+    return response.data;
+  },
+
+  /**
    * Envía la nueva contraseña junto con el token recibido por email.
    */
   resetPassword: async (
@@ -54,5 +91,19 @@ export const AuthService = {
       confirmPassword: data.confirmPassword,
     };
     await api.patch("/api/auth/reset-password", payload); // Ajustá esta URL si es distinta
+  },
+
+  /**
+   * Completa el primer inicio de sesión estableciendo la contraseña definitiva
+   * y los datos obligatorios de perfil (DNI y país).
+   */
+  firstLogin: async (
+    payload: FirstLoginRequest,
+  ): Promise<FirstLoginResponse> => {
+    const response = await api.post<FirstLoginResponse>(
+      "/api/users/first-login",
+      payload,
+    );
+    return response.data;
   },
 };

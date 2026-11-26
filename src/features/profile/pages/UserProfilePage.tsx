@@ -1,7 +1,9 @@
-import { Alert, Box, CircularProgress, Typography } from "@mui/material";
+import { Alert, Box, CircularProgress, Stack, Typography } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { UserService } from "../api/UserService";
 import UserProfileCard from "../components/UserProfileCard";
+import ChangePasswordCard from "../components/ChangePasswordCard";
+import ChangeEmailCard from "../components/ChangeEmailCard";
 
 export default function UserProfilePage() {
   const {
@@ -36,7 +38,7 @@ export default function UserProfilePage() {
         </Typography>
       </Box>
 
-      {/* Estados de carga, error y contenido */}
+      {/* Estado de carga */}
       {isLoading && (
         <Box
           sx={{
@@ -50,6 +52,7 @@ export default function UserProfilePage() {
         </Box>
       )}
 
+      {/* Estado de error */}
       {isError && (
         <Alert severity="error" sx={{ mb: 3 }}>
           {error instanceof Error
@@ -58,7 +61,19 @@ export default function UserProfilePage() {
         </Alert>
       )}
 
-      {!isLoading && !isError && user && <UserProfileCard user={user} />}
+      {/* Tres secciones del perfil */}
+      {!isLoading && !isError && user && (
+        <Stack spacing={3}>
+          {/* Sección A: Datos personales */}
+          <UserProfileCard user={user} />
+
+          {/* Sección B: Seguridad / Contraseña */}
+          <ChangePasswordCard />
+
+          {/* Sección C: Correo electrónico */}
+          <ChangeEmailCard user={user} />
+        </Stack>
+      )}
     </Box>
   );
 }

@@ -1,4 +1,6 @@
 import { api } from "../../../lib/api";
+import type { CreatedCongress } from "../types/createCongress";
+import type { CongressDashboard } from "../types/congressDashboard";
 import type {
   Congress,
   CongressRole,
@@ -7,6 +9,8 @@ import type {
   AvailableCongress,
   CongressParticipation,
   CongressMessage,
+  MyCongressSummary,
+  CongressDetails,
 } from "../types/congress";
 
 class CongressService {
@@ -14,6 +18,10 @@ class CongressService {
     return api.get<AvailableCongress[]>("/api/congresses", {
       params: enabled !== undefined ? { enabled } : undefined,
     });
+  }
+
+  listMyCongresses(signal?: AbortSignal) {
+    return api.get<MyCongressSummary[]>("/api/congresses/mine", { signal });
   }
 
   getMyParticipation(congressCode: string, signal?: AbortSignal) {
@@ -42,7 +50,7 @@ class CongressService {
   }
 
   createCongress(payload: CreateCongressRequest) {
-    return api.post<Congress>("/api/congresses", payload);
+    return api.post<CreatedCongress>("/api/congresses", payload);
   }
 
   disableCongress(congressId: number) {
@@ -70,17 +78,17 @@ class CongressService {
   }
 
   getCongressByCode(congressCode: string, signal?: AbortSignal) {
-    return api.get<{
-      congressId: number;
-      code: string;
-      name: string;
-      place: string;
-      thematicAreas: string[];
-      enabled: boolean;
-      isFree: boolean;
-      isSingleBlind: boolean;
-      contactMail: string;
-    }>(`/api/congresses/${encodeURIComponent(congressCode)}`, { signal });
+    return api.get<CongressDetails>(
+      `/api/congresses/${encodeURIComponent(congressCode)}`,
+      { signal },
+    );
+  }
+
+  getDashboard(congressCode: string, signal?: AbortSignal) {
+    return api.get<CongressDashboard>(
+      `/api/congresses/${encodeURIComponent(congressCode)}/dashboard`,
+      { signal },
+    );
   }
 }
 

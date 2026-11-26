@@ -5,10 +5,6 @@ import {
   Link,
   Paper,
   Typography,
-  FormControl,
-  FormHelperText,
-  MenuItem,
-  Select,
   Alert,
 } from "@mui/material";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
@@ -20,6 +16,7 @@ import { registerSchema, type RegisterFormData } from "../schemas/registerSchema
 import PasswordField from "../components/PasswordField";
 import RegisterField from "../components/RegisterField";
 import { AuthService } from "../api/AuthService";
+import CountrySelect from "../../../components/CountrySelect";
 
 function RegisterPage() {
   const navigate = useNavigate();
@@ -123,15 +120,17 @@ function RegisterPage() {
               name="country"
               control={control}
               render={({ field, fieldState }) => (
-                <FormControl fullWidth size="small" error={!!fieldState.error}>
-                  <Typography component="label" htmlFor="country" variant="body2" sx={{ display: "block", color: "text.secondary", fontWeight: 600, mb: 0.75, textAlign: "left" }}>País</Typography>
-                  <Select {...field} id="country" displayEmpty>
-                    <MenuItem value=""><em>Seleccioná un país</em></MenuItem>
-                    <MenuItem value="Argentina">Argentina</MenuItem>
-                    {/* Podés agregar más países aquí luego */}
-                  </Select>
-                  {fieldState.error && <FormHelperText>{fieldState.error.message}</FormHelperText>}
-                </FormControl>
+                <CountrySelect
+                  id="country"
+                  name={field.name}
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  inputRef={field.ref}
+                  disabled={isSubmitting || isSuccess}
+                  error={!!fieldState.error}
+                  helperText={fieldState.error?.message}
+                />
               )}
             />
           </Box>

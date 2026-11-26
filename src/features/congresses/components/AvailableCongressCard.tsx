@@ -1,66 +1,117 @@
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  Divider,
-  Paper,
-  Typography,
-} from "@mui/material";
-import { useQuery } from "@tanstack/react-query";
-import { isAxiosError } from "axios";
+import { Box, Button, Chip, Divider, Paper, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
-import { useAuth } from "../../auth/context/AuthContext";
-import CongressService from "../api/CongressService";
 import { getCongressAvailability } from "../lib/congressAvailability";
-import { getCongressError } from "../lib/congressErrors";
-import type { AvailableCongress, ParticipantRole } from "../types/congress";
+import type {
+  AvailableCongress,
+  MyCongressRole,
+  MyCongressSummary,
+} from "../types/congress";
 
-const roleLabels: Record<ParticipantRole, string> = {
-  UNKNOWN: "Sin rol asignado",
+const roleLabels: Record<MyCongressRole, string> = {
   ADMINISTRATOR: "Administrador",
   EVALUATOR: "Evaluador",
   EXPOSITOR: "Presentador",
   LISTENER: "Oyente",
+  SUPER_ADMIN: "Súper administrador",
 };
-const formatDate = (value: string) =>
-  new Intl.DateTimeFormat("es-AR", {
+
+const formatDate = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "No disponible";
+
+  return new Intl.DateTimeFormat("es-AR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-  }).format(new Date(value));
+  }).format(date);
+};
 
 interface Props {
   congress: AvailableCongress;
-  userId: number;
+  participation: MyCongressSummary | undefined;
   now: Date;
   onInstitution: (congress: AvailableCongress, editing: boolean) => void;
 }
 
 export default function AvailableCongressCard({
   congress,
-  userId,
+  participation,
   now,
   onInstitution,
 }: Props) {
-  const { user } = useAuth();
-  const participation = useQuery({
-    queryKey: ["congress-participation", userId, congress.code],
-    queryFn: async ({ signal }) => {
-      try {
-        return (await CongressService.getMyParticipation(congress.code, signal))
-          .data;
-      } catch (error) {
-        // 404 también puede indicar una baja previa: el backend valida la inscripción.
-        if (isAxiosError(error) && error.response?.status === 404) return null;
-        throw error;
-      }
-    },
-    retry: false,
-  });
   const { canRegister, label } = getCongressAvailability(congress, now);
-  const participant = participation.data?.active ? participation.data : null;
-  const needsInstitution = participant && !participant.institution?.trim();
+  const needsInstitution =
+    participation &&
+    participation.role !== "SUPER_ADMIN" &&
+    !participation.institution?.trim();
+  const canEnterParticipantHome =
+    participation?.role === "LISTENER" || participation?.role === "EXPOSITOR";
+
+  const action = participation ? (
+    <>
+      <Typography variant="body2" sx={{ mb: 1 }}>
+        Tu rol: {roleLabels[participation.role]}
+      </Typography>
+      {needsInstitution ? (
+        <Button
+          fullWidth
+          variant="contained"
+          onClick={() => onInstitution(congress, true)}
+        >
+          Completar institución
+        </Button>
+      ) : participation.role === "EVALUATOR" ? (
+        <Button
+          component={RouterLink}
+          to={`/congresses/${encodeURIComponent(congress.code)}/reviewer-inbox`}
+          fullWidth
+          variant="contained"
+        >
+          Ver bandeja de trabajos
+        </Button>
+      ) : canEnterParticipantHome ? (
+        <Box sx={{ display: "grid", gap: 1 }}>
+          <Button
+            component={RouterLink}
+            to={`/congresses/${encodeURIComponent(congress.code)}/home`}
+            fullWidth
+            variant="contained"
+          >
+            Ingresar al congreso
+          </Button>
+          <Button
+            component={RouterLink}
+            to={`/congresses/${encodeURIComponent(congress.code)}/my-papers`}
+            fullWidth
+            variant="outlined"
+          >
+            Mis trabajos
+          </Button>
+        </Box>
+      ) : (
+        <Button
+          component={RouterLink}
+          to="/my-congresses"
+          fullWidth
+          variant="outlined"
+        >
+          Ver en Mis congresos
+        </Button>
+      )}
+    </>
+  ) : canRegister ? (
+    <Button
+      fullWidth
+      variant="contained"
+      onClick={() => onInstitution(congress, false)}
+    >
+      Inscribirme
+    </Button>
+  ) : (
+    <Typography variant="body2" color="text.secondary">
+      No hay inscripciones disponibles en este momento.
+    </Typography>
+  );
 
   return (
     <Paper
@@ -131,100 +182,7 @@ export default function AvailableCongressCard({
         Inscripción: {formatDate(congress.registrationStartDate)} –{" "}
         {formatDate(congress.registrationEndDate)}
       </Typography>
-      <Box sx={{ mt: "auto" }}>
-        {participation.isPending || participation.isFetching ? (
-          <Typography role="status" variant="body2">
-            Consultando tu participación…
-          </Typography>
-        ) : participation.isError ? (
-          <Alert
-            severity="error"
-            action={
-              <Button
-                color="inherit"
-                size="small"
-                onClick={() => void participation.refetch()}
-              >
-                Reintentar
-              </Button>
-            }
-          >
-            {getCongressError(participation.error)}
-          </Alert>
-        ) : participant ? (
-          <>
-            <Typography variant="body2" sx={{ mb: 1 }}>
-              Tu rol: {roleLabels[participant.role] ?? "Sin rol asignado"}
-            </Typography>
-            {needsInstitution ? (
-              <Button
-                fullWidth
-                variant="contained"
-                onClick={() => onInstitution(congress, true)}
-              >
-                Completar institución
-              </Button>
-            ) : participant.role === "EVALUATOR" ? (
-              <Button
-                component={RouterLink}
-                to={`/congresses/${encodeURIComponent(congress.code)}/reviewer-inbox`}
-                fullWidth
-                variant="contained"
-              >
-                Ver bandeja de trabajos
-              </Button>
-            ) : participant.role === "ADMINISTRATOR" ||
-              participant.role === "EXPOSITOR" ? (
-              <Button
-                component={RouterLink}
-                to={`/congresses/${encodeURIComponent(congress.code)}/payments`}
-                fullWidth
-                variant="outlined"
-              >
-                {participant.role === "ADMINISTRATOR"
-                  ? "Pagos y Libro de Resúmenes"
-                  : "Consultar estado de pago"}
-              </Button>
-            ) : (
-              <>
-                <Button fullWidth variant="outlined" disabled>
-                  Ingresar al congreso
-                </Button>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mt: 1 }}
-                >
-                  Tu inscripción está activa. El acceso estará disponible
-                  próximamente.
-                </Typography>
-              </>
-            )}
-          </>
-        ) : canRegister ? (
-          <Button
-            fullWidth
-            variant="contained"
-            onClick={() => onInstitution(congress, false)}
-          >
-            Inscribirme
-          </Button>
-        ) : (
-          <Typography variant="body2" color="text.secondary">
-            No hay inscripciones disponibles en este momento.
-          </Typography>
-        )}
-      </Box>
-      {user?.superAdmin && participant?.role !== "ADMINISTRATOR" && (
-        <Button
-          component={RouterLink}
-          to={`/congresses/${encodeURIComponent(congress.code)}/payments`}
-          fullWidth
-          variant="outlined"
-        >
-          Pagos y Libro de Resúmenes
-        </Button>
-      )}
+      <Box sx={{ mt: "auto" }}>{action}</Box>
     </Paper>
   );
 }

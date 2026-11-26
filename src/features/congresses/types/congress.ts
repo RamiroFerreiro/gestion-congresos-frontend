@@ -4,9 +4,7 @@ export interface Congress {
   enabled: boolean;
 }
 
-export interface CreateCongressRequest {
-  name: string;
-}
+export type { CreateCongressRequest } from "./createCongress";
 
 export interface UpdateCongressRequest {
   name: string;
@@ -29,8 +27,33 @@ export interface AvailableCongress {
   endDate: string;
 }
 
+/** Campos de GET /api/congresses/{congressCode} utilizados por las pantallas. */
+export interface CongressDetails extends AvailableCongress {
+  thematicAreas: string[];
+  free: boolean;
+  singleBlind: boolean;
+  contactMail: string;
+}
+
 export type ParticipantRole =
   "UNKNOWN" | "ADMINISTRATOR" | "EVALUATOR" | "EXPOSITOR" | "LISTENER";
+
+export type MyCongressRole =
+  Exclude<ParticipantRole, "UNKNOWN"> | "SUPER_ADMIN";
+
+/** Contrato de GET /api/congresses/mine. */
+export interface MyCongressSummary {
+  code: string;
+  name: string;
+  place: string;
+  enabled: boolean;
+  startDate: string;
+  endDate: string;
+  presentationStartDate: string;
+  presentationEndDate: string;
+  role: MyCongressRole;
+  institution: string | null;
+}
 
 export interface CongressParticipation {
   idCongressParticipant: number;

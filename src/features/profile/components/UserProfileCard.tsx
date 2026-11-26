@@ -11,7 +11,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
@@ -21,6 +21,7 @@ import {
   type UserProfileFormData,
 } from "../schemas/userProfileSchema";
 import type { UserProfileResponse } from "../types/userProfile";
+import CountrySelect from "../../../components/CountrySelect";
 
 interface UserProfileCardProps {
   user: UserProfileResponse;
@@ -33,6 +34,7 @@ export default function UserProfileCard({ user }: UserProfileCardProps) {
   const queryClient = useQueryClient();
 
   const {
+    control,
     register,
     handleSubmit,
     reset,
@@ -134,7 +136,28 @@ export default function UserProfileCard({ user }: UserProfileCardProps) {
         borderRadius: 1,
       }}
     >
-      {/* Cabecera del perfil: Avatar, Nombre completo y Acción */}
+      {/* Cabecera de sección */}
+      <Box sx={{ mb: 2.5 }}>
+        <Typography
+          component="h2"
+          sx={{
+            fontFamily: "var(--font-serif)",
+            fontSize: "1.1rem",
+            fontWeight: 600,
+            color: "text.primary",
+            mb: 0.25,
+          }}
+        >
+          Datos personales
+        </Typography>
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          Editá tu nombre, apellido, documento y país de residencia.
+        </Typography>
+      </Box>
+
+      <Divider sx={{ mb: 3 }} />
+
+      {/* Cabecera del perfil: Avatar + nombre completo + acción */}
       <Box
         sx={{
           display: "flex",
@@ -160,10 +183,10 @@ export default function UserProfileCard({ user }: UserProfileCardProps) {
           </Avatar>
           <Box>
             <Typography
-              component="h2"
+              component="h3"
               sx={{
                 fontFamily: "var(--font-serif)",
-                fontSize: "1.35rem",
+                fontSize: "1.2rem",
                 fontWeight: 600,
                 color: "text.primary",
               }}
@@ -211,8 +234,6 @@ export default function UserProfileCard({ user }: UserProfileCardProps) {
         </Alert>
       )}
 
-      <Divider sx={{ mb: 3 }} />
-
       {/* Vista de solo lectura */}
       {!isEditing ? (
         <Box
@@ -251,18 +272,6 @@ export default function UserProfileCard({ user }: UserProfileCardProps) {
               variant="caption"
               sx={{ color: "text.secondary", display: "block", mb: 0.5 }}
             >
-              Correo electrónico
-            </Typography>
-            <Typography variant="body1" sx={{ fontWeight: 500 }}>
-              {user.email || "—"}
-            </Typography>
-          </Box>
-
-          <Box>
-            <Typography
-              variant="caption"
-              sx={{ color: "text.secondary", display: "block", mb: 0.5 }}
-            >
               DNI / Documento
             </Typography>
             <Typography
@@ -286,7 +295,7 @@ export default function UserProfileCard({ user }: UserProfileCardProps) {
           </Box>
         </Box>
       ) : (
-        /* Formulario de edición */
+        /* Formulario de edición — solo campos editables, sin email */
         <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
           <Box
             sx={{
@@ -315,15 +324,6 @@ export default function UserProfileCard({ user }: UserProfileCardProps) {
             />
 
             <TextField
-              label="Correo electrónico"
-              fullWidth
-              size="small"
-              value={user.email}
-              disabled
-              helperText="El correo electrónico está vinculado a tu cuenta y no se edita desde aquí."
-            />
-
-            <TextField
               label="DNI / Documento"
               fullWidth
               size="small"
@@ -332,13 +332,22 @@ export default function UserProfileCard({ user }: UserProfileCardProps) {
               {...register("dni")}
             />
 
-            <TextField
-              label="País"
-              fullWidth
-              size="small"
-              error={!!errors.country}
-              helperText={errors.country?.message}
-              {...register("country")}
+            <Controller
+              name="country"
+              control={control}
+              render={({ field, fieldState }) => (
+                <CountrySelect
+                  id="profile-country"
+                  name={field.name}
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  inputRef={field.ref}
+                  disabled={updateMutation.isPending}
+                  error={!!fieldState.error}
+                  helperText={fieldState.error?.message}
+                />
+              )}
             />
           </Box>
 
