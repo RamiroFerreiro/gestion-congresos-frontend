@@ -1,4 +1,13 @@
-import { Avatar, Box, Button, Typography } from "@mui/material";
+import { useState } from "react";
+import {
+  Avatar,
+  Box,
+  ButtonBase,
+  Menu,
+  MenuItem,
+  Typography,
+  Divider,
+} from "@mui/material";
 import {
   Link as RouterLink,
   Navigate,
@@ -14,6 +23,12 @@ export default function MainLayout() {
   const location = useLocation();
   const queryClient = useQueryClient();
 
+  const [profileAnchorEl, setProfileAnchorEl] = useState<null | HTMLElement>(
+    null,
+  );
+
+  const profileMenuOpen = Boolean(profileAnchorEl);
+
   if (!user || !localStorage.getItem("token")) {
     return (
       <Navigate to="/auth/login" replace state={{ from: location.pathname }} />
@@ -23,6 +38,18 @@ export default function MainLayout() {
   if (user.mustChangePassword) {
     return <Navigate to="/first-login" replace />;
   }
+
+  const handleProfileMenuClose = () => {
+    setProfileAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    handleProfileMenuClose();
+
+    // Limpiamos la caché para evitar que otra cuenta reciba datos de la sesión anterior.
+    queryClient.clear();
+    logout();
+  };
 
   return (
     <Box
@@ -47,6 +74,7 @@ export default function MainLayout() {
         }}
       >
         <Box component="img" src={c4tIcon} alt="" sx={{ width: 40 }} />
+
         <Box sx={{ flex: 1 }}>
           <Box sx={{ display: "flex", alignItems: "baseline", gap: 1 }}>
             <Typography
@@ -58,50 +86,56 @@ export default function MainLayout() {
             >
               C4T
             </Typography>
+
             <Typography
               sx={{
-                fontFamily: "var(--font-mono)",
+                fontFamily: "var(--font-sans)",
                 fontSize: "0.65rem",
                 letterSpacing: "0.12em",
+                color: "#F3D6DE",
+                fontWeight: 700,
               }}
             >
               CALL FOR TALKS
             </Typography>
           </Box>
+
           <Typography
             sx={{
-              fontFamily: "var(--font-mono)",
+              fontFamily: "var(--font-sans)",
               fontSize: "0.6rem",
               letterSpacing: "0.08em",
+              color: "rgba(255, 253, 252, 0.66)",
+              fontWeight: 200,
             }}
           >
             PLATAFORMA PARA CONGRESOS CIENTÍFICOS
           </Typography>
         </Box>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Button
-            component={RouterLink}
-            to="/profile"
-            color="inherit"
+
+        {/* Acciones del usuario */}
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          <ButtonBase
+            id="profile-menu-button"
+            onClick={(event) => setProfileAnchorEl(event.currentTarget)}
+            aria-haspopup="menu"
+            aria-expanded={profileMenuOpen ? "true" : undefined}
             sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-              textTransform: "none",
-              px: 1.5,
+              color: "common.white",
+              borderRadius: 2,
+              px: 1,
               py: 0.5,
-              borderRadius: 1,
-              border: "1px solid rgba(255, 255, 255, 0.25)",
+              gap: 1,
+              transition: "background-color 0.2s ease",
               "&:hover": {
-                bgcolor: "rgba(255, 255, 255, 0.1)",
-                borderColor: "rgba(255, 255, 255, 0.5)",
+                bgcolor: "rgba(255, 255, 255, 0.08)",
               },
             }}
           >
             <Avatar
               sx={{
-                width: 28,
-                height: 28,
+                width: 32,
+                height: 32,
                 bgcolor: "primary.main",
                 border: "1px solid rgba(255, 255, 255, 0.5)",
                 fontSize: "0.75rem",
@@ -111,67 +145,85 @@ export default function MainLayout() {
               {user.firstName?.slice(0, 1) || "U"}
               {user.lastName?.slice(0, 1) || ""}
             </Avatar>
+
             <Typography
-              variant="body2"
               sx={{
+                display: { xs: "none", sm: "inline" },
                 fontWeight: 600,
                 color: "common.white",
-                display: { xs: "none", sm: "inline" },
               }}
             >
               {user.firstName}
             </Typography>
-          </Button>
 
-          <Button
-            color="inherit"
-            variant="outlined"
-            onClick={() => {
-              // Otra cuenta no debe recibir datos de la sesión anterior desde la caché.
-              queryClient.clear();
-              logout();
+            <Box
+              component="span"
+              aria-hidden="true"
+              sx={{
+                width: 8,
+                height: 8,
+                borderRight: "1.5px solid currentColor",
+                borderBottom: "1.5px solid currentColor",
+                transform: profileMenuOpen ? "rotate(225deg)" : "rotate(45deg)",
+                transition: "transform 0.2s ease",
+                ml: 0.5,
+                mt: profileMenuOpen ? 0.5 : -0.5,
+              }}
+            />
+          </ButtonBase>
+
+          <Menu
+            anchorEl={profileAnchorEl}
+            open={profileMenuOpen}
+            onClose={handleProfileMenuClose}
+            slotProps={{
+              list: {
+                "aria-labelledby": "profile-menu-button",
+              },
+            }}
+            anchorOrigin={{
+              vertical: "bottom",
+              horizontal: "right",
+            }}
+            transformOrigin={{
+              vertical: "top",
+              horizontal: "right",
             }}
             sx={{
-              borderColor: "rgba(255, 255, 255, 0.3)",
-              "&:hover": {
-                borderColor: "common.white",
-                bgcolor: "rgba(255, 255, 255, 0.08)",
+              "& .MuiPaper-root": {
+                mt: 1,
+                minWidth: 220,
+                borderRadius: 2,
               },
             }}
           >
-            Cerrar sesión
-          </Button>
-        </Box>
-      </Box>
+            <MenuItem
+              component={RouterLink}
+              to="/profile"
+              onClick={handleProfileMenuClose}
+            >
+              Mis datos personales
+            </MenuItem>
 
-      {/* Sub-barra de navegación */}
-      <Box
-        sx={{
-          bgcolor: "action.hover",
-          px: { xs: 2, sm: 4 },
-          py: 1.5,
-          borderBottom: 1,
-          borderColor: "divider",
-        }}
-      >
-        <Typography
-          component={RouterLink}
-          to="/my-congresses"
-          variant="body2"
-          sx={{
-            fontFamily: "var(--font-mono)",
-            color: "text.primary",
-            textDecoration: "none",
-            display: "inline-block",
-            cursor: "pointer",
-            "&:hover": {
-              textDecoration: "underline",
-              color: "primary.main",
-            },
-          }}
-        >
-          Mis congresos
-        </Typography>
+            <Divider
+              sx={{
+                my: 0.5,
+                mx: 1,
+                borderColor: "rgba(0, 0, 0, 0.08)",
+              }}
+            />
+
+            <MenuItem
+              onClick={handleLogout}
+              sx={{
+                color: "error.main",
+                fontWeight: 600,
+              }}
+            >
+              Cerrar sesión
+            </MenuItem>
+          </Menu>
+        </Box>
       </Box>
 
       {/* Área principal a pantalla completa */}

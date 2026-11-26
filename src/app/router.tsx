@@ -11,6 +11,8 @@ import FirstLoginPage from "../features/auth/pages/FirstLoginPage";
 import { useAuth } from "../features/auth/context/AuthContext";
 import CongressesPage from "../features/congresses/pages/CongressesPage";
 import MyCongressesPage from "../features/congresses/pages/MyCongressesPage";
+import CreateCongressPage from "../features/congresses/pages/CreateCongressPage";
+import AdminCongressHomePage from "../features/congresses/pages/AdminCongressHomePage";
 import PaperDetailPage from "../features/papers/pages/PaperDetailPage";
 import PaperInboxPage from "../features/papers/pages/PaperInboxPage";
 import CoauthorshipCatalogPage from "../features/papers/pages/CoauthorshipCatalogPage";
@@ -82,6 +84,11 @@ function AppRouter() {
         />
         <Route path="/congresses" element={<CongressesPage />} />
         <Route path="/my-congresses" element={<MyCongressesPage />} />
+        <Route path="/admin/congresses/new" element={<CreateCongressPage />} />
+        <Route
+          path="/admin/congresses/:congressCode/home"
+          element={<AdminCongressHomePage />}
+        />
         <Route
           path="/congresses/:congressCode/home"
           element={<PresenterHomePage />}
