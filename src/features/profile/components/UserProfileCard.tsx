@@ -11,7 +11,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
@@ -21,6 +21,7 @@ import {
   type UserProfileFormData,
 } from "../schemas/userProfileSchema";
 import type { UserProfileResponse } from "../types/userProfile";
+import CountrySelect from "../../../components/CountrySelect";
 
 interface UserProfileCardProps {
   user: UserProfileResponse;
@@ -33,6 +34,7 @@ export default function UserProfileCard({ user }: UserProfileCardProps) {
   const queryClient = useQueryClient();
 
   const {
+    control,
     register,
     handleSubmit,
     reset,
@@ -330,13 +332,22 @@ export default function UserProfileCard({ user }: UserProfileCardProps) {
               {...register("dni")}
             />
 
-            <TextField
-              label="País"
-              fullWidth
-              size="small"
-              error={!!errors.country}
-              helperText={errors.country?.message}
-              {...register("country")}
+            <Controller
+              name="country"
+              control={control}
+              render={({ field, fieldState }) => (
+                <CountrySelect
+                  id="profile-country"
+                  name={field.name}
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  inputRef={field.ref}
+                  disabled={updateMutation.isPending}
+                  error={!!fieldState.error}
+                  helperText={fieldState.error?.message}
+                />
+              )}
             />
           </Box>
 

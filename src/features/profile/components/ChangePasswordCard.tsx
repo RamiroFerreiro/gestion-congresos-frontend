@@ -11,7 +11,10 @@ import {
 } from "@mui/material";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
 import PasswordField from "../../auth/components/PasswordField";
+import { UserService } from "../api/UserService";
 import {
   changePasswordSchema,
   type ChangePasswordFormData,
@@ -19,12 +22,15 @@ import {
 
 export default function ChangePasswordCard() {
   const [isEditing, setIsEditing] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const {
     control,
     handleSubmit,
     reset,
-    formState: { isSubmitting },
+    setError,
+    formState: { errors },
   } = useForm<ChangePasswordFormData>({
     resolver: zodResolver(changePasswordSchema),
     defaultValues: {
@@ -34,17 +40,60 @@ export default function ChangePasswordCard() {
     },
   });
 
+  const changePasswordMutation = useMutation({
+    mutationFn: (data: ChangePasswordFormData) =>
+      UserService.changePassword({
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
+        confirmPassword: data.confirmPassword,
+      }),
+    onSuccess: (response) => {
+      setSuccessMessage(
+        response.message || "Tu contraseña se ha modificado exitosamente.",
+      );
+      setErrorMessage(null);
+      reset();
+      setIsEditing(false);
+    },
+    onError: (error) => {
+      setSuccessMessage(null);
+
+      if (isAxiosError(error)) {
+        const status = error.response?.status;
+        const backendMessage = error.response?.data?.message;
+
+        if (status === 401) {
+          setError("currentPassword", {
+            message:
+              backendMessage || "La contraseña actual ingresada es incorrecta.",
+          });
+          return;
+        }
+
+        if (status === 400 && backendMessage) {
+          setErrorMessage(backendMessage);
+          return;
+        }
+      }
+
+      setErrorMessage(
+        "Ocurrió un error inesperado al intentar cambiar la contraseña. Intentá nuevamente.",
+      );
+    },
+  });
+
   const handleCancel = () => {
     reset();
+    setErrorMessage(null);
     setIsEditing(false);
   };
 
-  const onSubmit = async (_data: ChangePasswordFormData) => {
-    // TODO: Conectar con PATCH /api/users/me/password
-    // El endpoint recibirá: { currentPassword, newPassword, confirmPassword }
-    // Por ahora esta acción no tiene efecto en el backend.
-    console.info("Cambio de contraseña pendiente de integración con backend.");
+  const onSubmit = (data: ChangePasswordFormData) => {
+    setErrorMessage(null);
+    changePasswordMutation.mutate(data);
   };
+
+  const isPending = changePasswordMutation.isPending;
 
   return (
     <Paper
@@ -78,10 +127,27 @@ export default function ChangePasswordCard() {
 
       <Divider sx={{ mb: 3 }} />
 
-      {/* Aviso de funcionalidad en desarrollo */}
-      <Alert severity="info" sx={{ mb: 3 }}>
-        La funcionalidad de cambio de contraseña estará disponible próximamente.
-      </Alert>
+      {/* Alerta de éxito */}
+      {successMessage && (
+        <Alert
+          severity="success"
+          sx={{ mb: 3 }}
+          onClose={() => setSuccessMessage(null)}
+        >
+          {successMessage}
+        </Alert>
+      )}
+
+      {/* Alerta de error general */}
+      {errorMessage && (
+        <Alert
+          severity="error"
+          sx={{ mb: 3 }}
+          onClose={() => setErrorMessage(null)}
+        >
+          {errorMessage}
+        </Alert>
+      )}
 
       {/* Vista de solo lectura */}
       {!isEditing ? (
@@ -116,7 +182,11 @@ export default function ChangePasswordCard() {
           <Button
             variant="outlined"
             color="primary"
-            onClick={() => setIsEditing(true)}
+            onClick={() => {
+              setSuccessMessage(null);
+              setErrorMessage(null);
+              setIsEditing(true);
+            }}
           >
             Cambiar contraseña
           </Button>
@@ -135,14 +205,15 @@ export default function ChangePasswordCard() {
             <Controller
               name="currentPassword"
               control={control}
-              render={({ field, fieldState }) => (
+              render={({ field }) => (
                 <PasswordField
                   id="currentPassword"
                   label="Contraseña actual"
                   placeholder="••••••••"
                   {...field}
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
+                  error={!!errors.currentPassword}
+                  helperText={errors.currentPassword?.message}
+                  disabled={isPending}
                 />
               )}
             />
@@ -150,14 +221,15 @@ export default function ChangePasswordCard() {
             <Controller
               name="newPassword"
               control={control}
-              render={({ field, fieldState }) => (
+              render={({ field }) => (
                 <PasswordField
                   id="newPassword"
                   label="Nueva contraseña"
                   placeholder="••••••••"
                   {...field}
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
+                  error={!!errors.newPassword}
+                  helperText={errors.newPassword?.message}
+                  disabled={isPending}
                 />
               )}
             />
@@ -165,14 +237,15 @@ export default function ChangePasswordCard() {
             <Controller
               name="confirmPassword"
               control={control}
-              render={({ field, fieldState }) => (
+              render={({ field }) => (
                 <PasswordField
                   id="confirmPassword"
                   label="Confirmar nueva contraseña"
                   placeholder="••••••••"
                   {...field}
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
+                  error={!!errors.confirmPassword}
+                  helperText={errors.confirmPassword?.message}
+                  disabled={isPending}
                 />
               )}
             />
@@ -187,7 +260,7 @@ export default function ChangePasswordCard() {
               variant="outlined"
               color="inherit"
               onClick={handleCancel}
-              disabled={isSubmitting}
+              disabled={isPending}
             >
               Cancelar
             </Button>
@@ -195,9 +268,9 @@ export default function ChangePasswordCard() {
               type="submit"
               variant="contained"
               color="primary"
-              disabled={isSubmitting}
+              disabled={isPending}
               startIcon={
-                isSubmitting ? (
+                isPending ? (
                   <CircularProgress size={16} color="inherit" />
                 ) : null
               }

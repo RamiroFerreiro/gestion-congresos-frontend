@@ -40,11 +40,15 @@ function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     setAuthError(null); // Limpiamos errores previos al reintentar
     try {
-      await login(data);
+      const userData = await login(data);
 
-      // Si el backend responde OK y el Contexto guardó todo, redirigimos.
-      // Modificá "/dashboard" por la ruta principal de tu app.
-      navigate("/my-congresses");
+      if (userData.mustChangePassword) {
+        navigate("/first-login", { replace: true });
+        return;
+      }
+
+      // Si el backend responde OK y no requiere cambio de clave, redirigimos a congresos
+      navigate("/congresses", { replace: true });
     } catch (error) {
       // Atrapamos el error y mostramos el mensaje al usuario
       setAuthError(
