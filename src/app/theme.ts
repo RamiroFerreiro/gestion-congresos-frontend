@@ -17,7 +17,7 @@ export const theme = createTheme({
     },
     text: {
       primary: "#241B1F",
-      secondary: "#6F6468",
+      secondary: "#6b5a60",
     },
     divider: "#D8CECF",
   },

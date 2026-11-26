@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { AxiosError } from "axios";
-import { getCongressAvailability } from "../lib/congressAvailability.ts";
+import {
+  getCongressAvailability,
+  getCongressStatus,
+} from "../lib/congressAvailability.ts";
 import { getCongressError } from "../lib/congressErrors.ts";
 import { institutionSchema } from "../schemas/institutionSchema.ts";
 
@@ -17,6 +20,54 @@ const congress = {
 const availability = (date, overrides = {}) =>
   getCongressAvailability({ ...congress, ...overrides }, new Date(date));
 
+test("Mis congresos muestra Activo sin depender del período de inscripción", () => {
+  // El resumen de /mine no contiene las fechas de inscripción.
+  const summary = {
+    enabled: congress.enabled,
+    startDate: congress.startDate,
+    endDate: congress.endDate,
+    presentationStartDate: congress.presentationStartDate,
+    presentationEndDate: congress.presentationEndDate,
+  };
+  for (const date of [
+    "2026-10-31T12:00:00",
+    "2026-11-12T12:00:00",
+    "2026-11-15T18:00:01",
+    "2026-11-23T12:00:00",
+  ]) {
+    assert.deepEqual(getCongressStatus(summary, new Date(date)), {
+      label: "Activo",
+      finished: false,
+      disabled: false,
+    });
+  }
+});
+
+test("el estado general conserva las etapas y prioriza deshabilitación y finalización", () => {
+  for (const [date, label] of [
+    [congress.presentationStartDate, "Recepción abierta"],
+    [congress.presentationEndDate, "Recepción abierta"],
+    [congress.startDate, "En curso"],
+    [congress.endDate, "En curso"],
+    ["2026-11-28T18:00:01", "Finalizado"],
+  ]) {
+    assert.equal(getCongressStatus(congress, new Date(date)).label, label);
+    assert.equal(
+      getCongressStatus({ ...congress, enabled: false }, new Date(date)).label,
+      "Deshabilitado",
+    );
+  }
+});
+
+test("el catálogo conserva Inscripción cerrada en los intervalos entre etapas", () => {
+  for (const date of ["2026-11-15T18:00:01", "2026-11-23T12:00:00"]) {
+    assert.equal(availability(date).label, "Inscripción cerrada");
+    assert.equal(availability(date).canRegister, false);
+  }
+  assert.equal(availability(congress.startDate).label, "En curso");
+  assert.equal(availability(congress.startDate).canRegister, false);
+});
+
 test("la inscripción incluye los instantes de apertura y cierre", () => {
   for (const date of [
     congress.registrationStartDate,
@@ -24,6 +75,7 @@ test("la inscripción incluye los instantes de apertura y cierre", () => {
     congress.registrationEndDate,
   ]) {
     assert.equal(availability(date).canRegister, true);
+    assert.equal(availability(date).label, "Inscripción abierta");
   }
 });
 

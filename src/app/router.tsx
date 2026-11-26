@@ -9,6 +9,8 @@ import ConfirmEmailChangePage from "../features/auth/pages/ConfirmEmailChangePag
 import ConfirmNewEmailPage from "../features/auth/pages/ConfirmNewEmailPage";
 import CongressesPage from "../features/congresses/pages/CongressesPage";
 import MyCongressesPage from "../features/congresses/pages/MyCongressesPage";
+import CreateCongressPage from "../features/congresses/pages/CreateCongressPage";
+import AdminCongressHomePage from "../features/congresses/pages/AdminCongressHomePage";
 import PaperDetailPage from "../features/papers/pages/PaperDetailPage";
 import PaperInboxPage from "../features/papers/pages/PaperInboxPage";
 import PaperSubmissionPage from "../features/papers/pages/PaperSubmissionPage";
@@ -55,6 +57,11 @@ function AppRouter() {
         />
         <Route path="/congresses" element={<CongressesPage />} />
         <Route path="/my-congresses" element={<MyCongressesPage />} />
+        <Route path="/admin/congresses/new" element={<CreateCongressPage />} />
+        <Route
+          path="/admin/congresses/:congressCode/home"
+          element={<AdminCongressHomePage />}
+        />
         <Route
           path="/congresses/:congressCode/home"
           element={<PresenterHomePage />}

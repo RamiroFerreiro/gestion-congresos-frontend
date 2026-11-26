@@ -4,9 +4,7 @@ export interface Congress {
   enabled: boolean;
 }
 
-export interface CreateCongressRequest {
-  name: string;
-}
+export type { CreateCongressRequest } from "./createCongress";
 
 export interface UpdateCongressRequest {
   name: string;
@@ -27,6 +25,14 @@ export interface AvailableCongress {
   presentationEndDate: string;
   startDate: string;
   endDate: string;
+}
+
+/** Campos de GET /api/congresses/{congressCode} utilizados por las pantallas. */
+export interface CongressDetails extends AvailableCongress {
+  thematicAreas: string[];
+  free: boolean;
+  singleBlind: boolean;
+  contactMail: string;
 }
 
 export type ParticipantRole =

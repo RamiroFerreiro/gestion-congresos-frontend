@@ -17,7 +17,8 @@ export function getCongressStatus(congress: CongressSchedule, now: Date) {
   const finished = time > congressEnd;
   const disabled = !congress.enabled;
 
-  let label = "Inscripción cerrada";
+  // /mine no incluye fechas de inscripción; este estado describe el congreso.
+  let label = "Activo";
   if (disabled) label = "Deshabilitado";
   else if (finished) label = "Finalizado";
   else if (time >= submissionStart && time <= submissionEnd)
@@ -43,7 +44,7 @@ export function getCongressAvailability(
     time >= registrationStart &&
     time <= registrationEnd;
 
-  let label = status.label;
+  let label = status.label === "Activo" ? "Inscripción cerrada" : status.label;
   if (!status.disabled && !status.finished && time < registrationStart) {
     label = "Inscripción próximamente";
   } else if (!status.disabled && !status.finished && canRegister) {
