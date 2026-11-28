@@ -18,6 +18,7 @@ import PaperInboxPage from "../features/papers/pages/PaperInboxPage";
 import CoauthorshipCatalogPage from "../features/papers/pages/CoauthorshipCatalogPage";
 import PaperSubmissionPage from "../features/papers/pages/PaperSubmissionPage";
 import PaymentsPage from "../features/payments/pages/PaymentsPage";
+import PaperPaymentPage from "../features/payments/pages/PaperPaymentPage";
 import AdminPapersPage from "../features/papers/pages/AdminPapersPage";
 import UserProfilePage from "../features/profile/pages/UserProfilePage";
 import CongressParticipantProfilePage from "../features/profile/pages/CongressParticipantProfilePage";
@@ -85,7 +86,7 @@ function AppRouter() {
         />
         <Route
           path="/congresses/:congressCode/payments/:paperCode"
-          element={<PaymentsPage />}
+          element={<PaperPaymentPage />}
         />
         <Route path="/congresses" element={<CongressesPage />} />
         <Route path="/my-congresses" element={<MyCongressesPage />} />
